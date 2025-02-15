@@ -1,0 +1,205 @@
+.home-page {
+  display: flex;
+  height: 100vh;
+  background: #f0f8ff; 
+  color: #333;
+}
+
+
+/* แถบข้าง */
+.sidebar {
+  width: 280px;
+  background: white;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+.sidebar.close {
+  transform: translateX(-100%); 
+}
+
+.menu-icon {
+  display: none; 
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1500;
+}
+
+@media (max-width: 768px) {
+  .menu-icon {
+    display: block; 
+  }
+
+  .sidebar {
+    display: none; 
+  }
+
+  .sidebar.open {
+    display: block; 
+  }
+}
+
+
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.user-info .MuiAvatar-root {
+  width: 100px;
+  height: 100px;
+  border: 3px solid #87CEFA; 
+}
+
+.user-details h6 {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #007acc; 
+}
+
+.user-details p {
+  font-size: 1rem;
+  color: #555;
+}
+
+
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px; 
+   transform: scale(1.1); 
+  margin-top: 20px;
+}
+
+.sidebar-actions button {
+  width: 100%;
+
+  background: #87CEFA; 
+  color: white;
+  font-weight: bold;
+}
+
+.sidebar-actions button:hover {
+  background: #5aa8e6; 
+  transform: scale(1.1); 
+}
+
+/* ปุ่ม Logout */
+.logout-button {
+  background-color: red;  
+  color: white;
+  font-weight: bold;
+  padding: 10px 20px;
+  border-radius: 8px;
+  width: 100%; 
+  transition: all 0.3s ease; 
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+}
+
+
+.logout-button:hover {
+  background-color: darkred; 
+  transform: scale(1.1); 
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); 
+}
+
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  
+  justify-content: flex-start; 
+}
+
+.course-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr); 
+  gap: 1rem; 
+  margin-top: 1rem;
+  padding: 0 10px;
+}
+
+
+.course-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 2px 2px 15px rgba(0, 0, 0, 0.1);
+  padding: 20px; 
+  width: calc(150% 5px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  height: 380px; 
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin: 10px;
+}
+
+
+.course-card img {
+  width: 100%;
+  height: 150px; 
+  object-fit: cover; 
+  border-radius: 8px;
+}
+
+
+.course-card h6 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 15px 0;
+}
+
+.course-card p {
+  color: #777;
+  font-size: 1rem;
+}
+
+/* ปุ่ม */
+.course-card button {
+  margin-top: auto; 
+  padding: 10px 20px;
+  background-color: #007acc;
+  color: white;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+
+.course-card button:hover {
+  background-color: #005f99;
+}
+
+
+@media (max-width: 1200px) {
+  .course-cards {
+    grid-template-columns: repeat(2, 1fr); 
+  }
+}
+
+/* สำหรับหน้าจอขนาดเล็ก (มือถือ) */
+@media (max-width: 768px) {
+  .course-cards {
+    grid-template-columns: repeat(1, 1fr); 
+  }
+
+  .course-card {
+    width: 100%; 
+    height: auto; 
+  }
+}

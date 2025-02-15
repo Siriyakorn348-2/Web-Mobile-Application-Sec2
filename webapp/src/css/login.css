@@ -1,0 +1,58 @@
+
+.login-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f6f9;
+  }
+  
+  .app-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 30px; 
+  }
+  
+  .login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background-color: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .login-form {
+    text-align: center;
+  }
+  
+  .welcome-message {
+    text-align: center;
+  }
+  
+  .welcome-message h2 {
+    margin-bottom: 10px;
+  }
+  
+  .welcome-message img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-top: 10px;
+  }
+  
+  button {
+    width: 100%;
+    margin-top: 20px;
+  }
+  
+  button:focus {
+    outline: none;
+  }
+  
