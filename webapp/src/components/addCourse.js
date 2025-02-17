@@ -1,18 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore'; 
+import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { TextField, Button, Container, Typography } from '@mui/material';
+import '../css/addcourse.css';
 
 const AddCourse = () => {
   const [courseID, setCourseID] = useState('');
   const [courseName, setCourseName] = useState('');
   const [roomName, setRoomName] = useState('');
-  const [imageURL, setImageURL] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0); 
 
   const navigate = useNavigate();
   const auth = getAuth();
-  const db = getFirestore();  
+  const db = getFirestore();
+  const storage = getStorage();
+
+
+  const handleImageChange = (e) => {
+    setImageFile(e.target.files[0]);
+  };
+
+
+  const uploadImageToStorage = async (file) => {
+    if (!file) return null;
+
+    const storageRef = ref(storage, `classroom_images/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgress(progress); 
+        },
+        (error) => reject(error),
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        }
+      );
+    });
+  };
+
 
   const handleSaveCourse = async () => {
     const user = auth.currentUser;
@@ -21,18 +55,20 @@ const AddCourse = () => {
       return;
     }
 
-    const courseRef = doc(collection(db, 'classroom'));  
-    const courseData = {
-      courseID,
-      courseName,
-      roomName,
-      imageURL,
-      owner: user.uid,
-    };
-
     try {
-      await setDoc(courseRef, courseData);
+      setUploading(true);
+      const imageUrl = await uploadImageToStorage(imageFile);
 
+      const courseRef = doc(collection(db, 'classroom'));
+      const courseData = {
+        courseID,
+        courseName,
+        roomName,
+        imageURL: imageUrl, 
+        owner: user.uid,
+      };
+
+      await setDoc(courseRef, courseData);
       await setDoc(doc(db, `users/${user.uid}/classroom/${courseRef.id}`), { status: 1 });
 
       alert('บันทึกคอร์สสำเร็จ!');
@@ -40,6 +76,8 @@ const AddCourse = () => {
     } catch (error) {
       console.error('Error saving course:', error);
       alert('เกิดข้อผิดพลาดในการบันทึก');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -69,15 +107,39 @@ const AddCourse = () => {
         value={roomName}
         onChange={(e) => setRoomName(e.target.value)}
       />
-      <TextField
-        label="Image URL"
-        fullWidth
-        margin="normal"
-        value={imageURL}
-        onChange={(e) => setImageURL(e.target.value)}
-      />
-      <Button variant="contained" color="primary" onClick={handleSaveCourse}>
-        Save Course
+
+
+      <div className="upload-container">
+        <input 
+          type="file" 
+          accept="image/*" 
+          id="file-upload" 
+          className="custom-file-input" 
+          onChange={handleImageChange} 
+        />
+        <label htmlFor="file-upload" className="custom-file-label">
+          Choose an image
+        </label>
+      </div>
+
+
+      {uploading && (
+        <>
+          <div className="uploading-text">Uploading image...</div>
+          <div className="uploading-progress">
+            <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+          </div>
+        </>
+      )}
+
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleSaveCourse}
+        disabled={uploading || !imageFile}
+        style={{ marginTop: '20px' }}
+      >
+        {uploading ? 'Uploading...' : 'Save Course'}
       </Button>
     </Container>
   );
