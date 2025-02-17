@@ -6,13 +6,14 @@ import { getDatabase } from 'firebase/database';
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCLF0lSC8MjOME3Kd5XcjPK3IWnU2HAFcI",
-  authDomain: "webmobileapplication-ccb72.firebaseapp.com",
-  projectId: "webmobileapplication-ccb72",
-  storageBucket: "webmobileapplication-ccb72.appspot.com", 
-  messagingSenderId: "982789253508",
-  appId: "1:982789253508:web:d00d5bd14b4e1a71a015d1",
-  measurementId: "G-09RSTXNY4X"
+  apiKey: "AIzaSyAK7O2L6dWCEMcgMHz2Mt9xxvxcN03a4zI",
+  authDomain: "petty-hubby.firebaseapp.com",
+  databaseURL: "https://petty-hubby-default-rtdb.firebaseio.com",
+  projectId: "petty-hubby",
+  storageBucket: "petty-hubby.appspot.com",
+  messagingSenderId: "671313790696",
+  appId: "1:671313790696:web:2c9cc60b89bb370d5beb5d",
+  measurementId: "G-0BX2B6YTM0"
 };
 
 // Initialize Firebase

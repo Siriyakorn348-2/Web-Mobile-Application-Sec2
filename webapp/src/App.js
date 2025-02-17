@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
-import { auth } from './components/firebase';
+import { auth } from './firebase/firebase';
 import HomePage from './components/home';
 import LoginPage from './components/login';
 import EditProfile from './components/editProfile';
