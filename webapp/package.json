@@ -2,7 +2,7 @@
   "name": "webapp",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://github.com/Siriyakorn348-2/Web-Mobile-Application-Sec2/tree/main/webapp",
+  "homepage": "https://github.com/Siriyakorn348-2/Web-Mobile-Application-Sec2/",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
