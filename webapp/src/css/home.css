@@ -18,8 +18,7 @@
     justify-content: center;
     transition: transform 0.3s ease-in-out;
     padding: 20px;
-    max-width: 100%;
-    min-height: 100vh;
+
   
 }
 
@@ -113,16 +112,15 @@ header #menu-btn {
 
 
 .side-bar {
-  width: 300px;
-  background-color: #fff;
   position: fixed;
-  left: -250px;
-  transition: left 0.3s ease-in-out;
+  left: 0;
   top: 0;
-  height: 100%;
-  overflow-y: auto;
-  padding-top: 20px;
-  z-index: 1100;
+  width: 250px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
 }
 
 .side-bar.active {
@@ -328,6 +326,17 @@ header #menu-btn {
 #menu-btn:hover {
   background: #4e026e;
   color: var(--white);
+}
+
+
+#menu-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  #menu-btn {
+    display: flex;
+  }
 }
 
 
