@@ -1,85 +1,139 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore'; 
-import { TextField, Button, Container, Typography } from '@mui/material';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getAuth } from "firebase/auth";
+import { getFirestore, collection, doc, setDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import "../css/addCourse.css"; 
 
 const AddCourse = () => {
-  const [courseID, setCourseID] = useState('');
-  const [courseName, setCourseName] = useState('');
-  const [roomName, setRoomName] = useState('');
-  const [imageURL, setImageURL] = useState('');
+  const [courseID, setCourseID] = useState("");
+  const [courseName, setCourseName] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const navigate = useNavigate();
   const auth = getAuth();
-  const db = getFirestore();  
+  const db = getFirestore();
+  const storage = getStorage();
 
+  // ฟังก์ชันเปลี่ยนรูปภาพ
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setImageFile(file);
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    }
+  };
+
+  // อัปโหลดรูปไป Firebase Storage
+  const uploadImageToStorage = async (file) => {
+    if (!file) return null;
+
+    const storageRef = ref(storage, `classroom_images/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgress(progress);
+        },
+        (error) => reject(error),
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        }
+      );
+    });
+  };
+
+  // บันทึกข้อมูลคอร์ส
   const handleSaveCourse = async () => {
     const user = auth.currentUser;
     if (!user) {
-      alert('กรุณาเข้าสู่ระบบ');
+      alert("กรุณาเข้าสู่ระบบ");
       return;
     }
 
-    const courseRef = doc(collection(db, 'classroom'));  
-    const courseData = {
-      courseID,
-      courseName,
-      roomName,
-      imageURL,
-      owner: user.uid,
-    };
-
     try {
-      await setDoc(courseRef, courseData);
+      setUploading(true);
+      const imageUrl = await uploadImageToStorage(imageFile);
 
+      const courseRef = doc(collection(db, "classroom"));
+      const courseData = {
+        courseID,
+        courseName,
+        roomName,
+        imageURL: imageUrl,
+        owner: user.uid,
+      };
+
+      await setDoc(courseRef, courseData);
       await setDoc(doc(db, `users/${user.uid}/classroom/${courseRef.id}`), { status: 1 });
 
-      alert('บันทึกคอร์สสำเร็จ!');
-      navigate('/home');
+      alert("บันทึกคอร์สสำเร็จ!");
+      navigate("/home");
     } catch (error) {
-      console.error('Error saving course:', error);
-      alert('เกิดข้อผิดพลาดในการบันทึก');
+      console.error("Error saving course:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึก");
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>
-        Add New Course
-      </Typography>
-      <TextField
-        label="Course ID"
-        fullWidth
-        margin="normal"
+    <div className="card-container">
+      <h2>เพิ่มห้องเรียน</h2>
+
+      {/* Input กรอกข้อมูล */}
+      <input
+        type="text"
+        className="input-field"
+        placeholder="รหัสวิชา"
         value={courseID}
         onChange={(e) => setCourseID(e.target.value)}
       />
-      <TextField
-        label="Course Name"
-        fullWidth
-        margin="normal"
+      <input
+        type="text"
+        className="input-field"
+        placeholder="ชื่อวิชา"
         value={courseName}
         onChange={(e) => setCourseName(e.target.value)}
       />
-      <TextField
-        label="Room Name"
-        fullWidth
-        margin="normal"
+      <input
+        type="text"
+        className="input-field"
+        placeholder="รหัสห้องเรียน"
         value={roomName}
         onChange={(e) => setRoomName(e.target.value)}
       />
-      <TextField
-        label="Image URL"
-        fullWidth
-        margin="normal"
-        value={imageURL}
-        onChange={(e) => setImageURL(e.target.value)}
+
+     
+      <label htmlFor="file-upload" className="custom-file-label">
+        เลือกรูปภาพ
+      </label>
+      <input
+        type="file"
+        id="file-upload"
+        className="custom-file-input"
+        onChange={handleImageChange}
       />
-      <Button variant="contained" color="primary" onClick={handleSaveCourse}>
-        Save Course
-      </Button>
-    </Container>
+
+   
+      <div className="image-preview-container">
+        {imagePreview && <img src={imagePreview} className="image-preview" alt="Preview" />}
+      </div>
+
+    
+      <button className="submit-btn" onClick={handleSaveCourse} disabled={uploading}>
+        {uploading ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+      </button>
+    </div>
   );
 };
 
