@@ -19,7 +19,7 @@ const AddCourse = () => {
   const db = getFirestore();
   const storage = getStorage();
 
-  // ฟังก์ชันเปลี่ยนรูปภาพ
+ 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     setImageFile(file);
@@ -29,7 +29,7 @@ const AddCourse = () => {
     }
   };
 
-  // อัปโหลดรูปไป Firebase Storage
+  
   const uploadImageToStorage = async (file) => {
     if (!file) return null;
 
@@ -52,7 +52,7 @@ const AddCourse = () => {
     });
   };
 
-  // บันทึกข้อมูลคอร์ส
+
   const handleSaveCourse = async () => {
     const user = auth.currentUser;
     if (!user) {
@@ -90,7 +90,7 @@ const AddCourse = () => {
     <div className="card-container">
       <h2>เพิ่มห้องเรียน</h2>
 
-      {/* Input กรอกข้อมูล */}
+     
       <input
         type="text"
         className="input-field"

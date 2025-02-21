@@ -1,16 +1,16 @@
-/* กำหนดพื้นหลังของหน้า */
+
 body {
-    background-color: #f5f5f5; /* พื้นหลังสีเทาอ่อน */
+    background-color: #f5f5f5; 
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
 }
 
-/* กล่อง Card ครอบทั้ง Body */
+
 .card-container {
     background: white;
-    max-width: 700px; /* ขนาดกล่อง */
-    margin: 50px auto; /* จัดให้อยู่กลางหน้าจอ */
+    max-width: 700px; 
+    margin: 50px auto;
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -18,7 +18,7 @@ body {
     text-align: center;
 }
 
-/* ปรับ input */
+
 .input-field {
     width: 100%;
     padding: 12px;
@@ -29,7 +29,7 @@ body {
     box-sizing: border-box;
 }
 
-/* ปรับปุ่มให้อยู่ในกล่อง */
+
 .custom-file-input {
     display: none;
 }
@@ -53,7 +53,6 @@ body {
     background-color: #8e44ad;
 }
 
-/* ส่วนแสดงรูป */
 .image-preview-container {
     margin-top: 20px;
     text-align: center;
@@ -67,7 +66,7 @@ body {
     margin-top: 20px;
 }
 
-/* ปุ่ม Submit */
+
 .submit-btn {
     display: block;
     width: 100%;
