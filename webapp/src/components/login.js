@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@mui/material';
@@ -19,7 +19,7 @@ const LoginPage = () => {
       }
     });
 
-    return () => unsubscribe(); 
+    return () => unsubscribe();
   }, [auth]);
 
   const loginWithGoogle = async () => {
@@ -36,13 +36,14 @@ const LoginPage = () => {
 
   return (
     <div className="login-page">
+      <img src="/02.png" className="center-image" alt="Your description" />
       <h1 className="app-title">Web Application สำหรับอาจารย์</h1> 
       <div className="login-container">
         {user ? (
           <div className="welcome-message">
             <h2>Welcome, {user.displayName}</h2>
             <img src={user.photoURL} alt={user.displayName} />
-            <Button variant="contained" color="primary" onClick={() => navigate('/home')}>
+            <Button variant="contained" onClick={() => navigate('/home')} style={{ width: '100%' }}>
               ไปที่หน้าหลัก
             </Button>
           </div>
@@ -53,6 +54,7 @@ const LoginPage = () => {
               variant="contained"
               onClick={loginWithGoogle}
               startIcon={<GoogleIcon />}
+              style={{ width: '100%' }}
             >
               Login with Google
             </Button>

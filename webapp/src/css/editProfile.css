@@ -1,54 +1,112 @@
 .edit-profile-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: #f0f8ff; 
-    padding: 20px;
-  }
-  
-  .profile-paper {
-    background-color: white;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 600px;
-  }
-  
-  .profile-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-  }
-  
-  .profile-avatar {
-    width: 100px;
-    height: 100px;
-    margin-right: 20px;
-  }
-  
-  .profile-name {
-    font-weight: 600;
-    color: #4a90e2;
-  }
-  
-  .input-field {
-    margin-bottom: 15px;
-  }
-  
-  .save-button {
-    background-color: #4a90e2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f4f7fb; 
+  padding: 20px;
+}
+
+.profile-paper {
+  background-color: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 500px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  flex-direction: column;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 15px;
+  border: 3px solid #4a90e2;
+}
+
+.profile-name {
+  font-weight: 600;
+  font-size: 24px;
+  color: #4a90e2;
+  margin-top: 10px;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-field {
+  margin-bottom: 20px;
+}
+
+.file-input {
+  margin: 15px 0;
+}
+
+.save-button {
+  background-color: #4a90e2;
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  width: 100%;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.save-button:hover {
+  background-color: #357ab7;
+  transform: translateY(-2px);
+}
+
+.save-button:active {
+  background-color: #006aa7;
+  transform: translateY(1px);
+}
+
+.file-input-label {
+  color: #4a90e2;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+
+.upload-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.custom-file-input {
+    display: none; 
+}
+
+.custom-file-label {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #18a4a0;
     color: white;
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 16px;
-    transition: background-color 0.3s;
-  }
-  
-  .save-button:hover {
-    background-color: #357ab7;
-  }
-  
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: auto;
+    min-width: 200px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.custom-file-label:hover {
+    background-color: #23fdf5;
+}
