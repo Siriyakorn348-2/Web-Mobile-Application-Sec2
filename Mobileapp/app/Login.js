@@ -1,4 +1,3 @@
-
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, Button } from 'react-native';
 import { useState } from 'react';
@@ -9,13 +8,15 @@ import {
   PhoneAuthProvider,
   signInWithCredential,
 } from 'firebase/auth';
+e
 
-export default function App() {
+export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [confirmation, setConfirmation] = useState(null);
 
   // Login ด้วย Email/Password
   const handleEmailLogin = async () => {
@@ -28,14 +29,12 @@ export default function App() {
   };
 
   // ส่ง OTP
-  const [confirmation, setConfirmation] = useState(null);
-
   const handleSendOtp = async () => {
     try {
       const confirmationResult = await signInWithPhoneNumber(auth, phone);
-      setConfirmation(confirmationResult); 
+      setConfirmation(confirmationResult);
       setOtpSent(true);
-      alert("OTP sent!");
+      alert('OTP sent!');
     } catch (error) {
       alert(error.message);
     }
@@ -44,9 +43,11 @@ export default function App() {
   // ยืนยัน OTP
   const handleVerifyOtp = async () => {
     try {
-      if (!confirmation) throw new Error("No OTP confirmation available");
-      await confirmation.confirm(otp);  
-      alert("Logged in with Phone!");
+      if (!confirmation) throw new Error('No OTP confirmation available');
+      await confirmation.confirm(otp);
+      alert('Logged in with Phone!');
+      setOtpSent(false);
+      setOtp('');
     } catch (error) {
       alert(error.message);
     }
