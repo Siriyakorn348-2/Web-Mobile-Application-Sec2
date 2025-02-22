@@ -1,8 +1,8 @@
-// App.js (Mobile Application)
+
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, Button } from 'react-native';
 import { useState } from 'react';
-import { auth } from './firebase-config'; // ตั้งค่า Firebase
+import { auth } from './firebase';
 import {
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
@@ -28,12 +28,14 @@ export default function App() {
   };
 
   // ส่ง OTP
+  const [confirmation, setConfirmation] = useState(null);
+
   const handleSendOtp = async () => {
     try {
-      const confirmation = await signInWithPhoneNumber(auth, phone);
-      window.confirmationResult = confirmation;
+      const confirmationResult = await signInWithPhoneNumber(auth, phone);
+      setConfirmation(confirmationResult); 
       setOtpSent(true);
-      alert('OTP sent!');
+      alert("OTP sent!");
     } catch (error) {
       alert(error.message);
     }
@@ -42,8 +44,9 @@ export default function App() {
   // ยืนยัน OTP
   const handleVerifyOtp = async () => {
     try {
-      await window.confirmationResult.confirm(otp);
-      alert('Logged in with Phone!');
+      if (!confirmation) throw new Error("No OTP confirmation available");
+      await confirmation.confirm(otp);  
+      alert("Logged in with Phone!");
     } catch (error) {
       alert(error.message);
     }
