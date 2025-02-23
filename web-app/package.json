@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://Siriyakorn348-2.github.io/Web-Mobile-Application-Sec2",
+  "homepage": "https://Siriyakorn348-2.github.io/Web-Mobile-Application-Sec2/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
