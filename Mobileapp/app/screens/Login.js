@@ -1,55 +1,46 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, StyleSheet } from "react-native";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { useRouter } from "expo-router";
+import { View, Text, TextInput, Button, Alert, TouchableOpacity } from "react-native";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase/firebaseConfig";
+import { useRouter } from "expo-router"; // ✅ เปลี่ยนเป็น useRouter
 
 export default function Login() {
-  console.log("✅ Login Screen Loaded"); // ✅ Debugging
-
-  const router = useRouter();
-  const auth = getAuth();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const router = useRouter(); // ✅ ใช้ router แทน navigation
 
   const handleLogin = async () => {
-    setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ Login Successful"); // ✅ Debugging
-      router.replace("/home"); // ✅ ใช้ expo-router
+      Alert.alert("✅ ล็อกอินสำเร็จ!");
+      navigation.navigate("/screens/Home"); 
     } catch (error) {
-      console.error("❌ Login Failed:", error.message);
-      alert("Login Failed: " + error.message);
+      Alert.alert("❌ ล็อกอินล้มเหลว", error.message);
     }
-    setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <Button title={loading ? "Logging in..." : "Login"} onPress={handleLogin} disabled={loading} />
+    <View style={{ padding: 20 }}>
+      <Text>📧 อีเมล:</Text>
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} />
+      
+      <Text>🔒 รหัสผ่าน:</Text>
+      <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry />
+
+      <Button title="🔑 ล็อกอิน" onPress={handleLogin} />
+
+      <TouchableOpacity onPress={() => router.push("/screens/Register")}>
+        <Text style={{ color: "blue", marginTop: 10 }}>➕ ลงทะเบียน</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "white" },
-  title: { fontSize: 24, marginBottom: 20, textAlign: "center" },
-  input: { borderWidth: 1, borderColor: "#ccc", padding: 10, marginVertical: 10, borderRadius: 5 },
-});
+const styles = {
+  input: {
+    borderWidth: 1,
+    padding: 10,
+    marginVertical: 5,
+    borderRadius: 5,
+  },
+};

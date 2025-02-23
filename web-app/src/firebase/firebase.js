@@ -1,8 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getDatabase } from "firebase/database";
 
-// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAK7O2L6dWCEMcgMHz2Mt9xxvxcN03a4zI",
   authDomain: "petty-hubby.firebaseapp.com",
@@ -14,9 +13,9 @@ const firebaseConfig = {
   measurementId: "G-0BX2B6YTM0"
 };
 
-// Initialize Firebase
+// ✅ เรียก initializeApp() เพื่อสร้าง Firebase app
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app); // 🔥 เพิ่ม Firestore
+const db = getDatabase(app);
 
-export { auth, db }; // 🔥 Export db ด้วย
+export { auth, db };
