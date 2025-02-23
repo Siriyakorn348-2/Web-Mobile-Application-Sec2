@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom"; 
 import { useState } from "react";
 import { AppBar, Toolbar, IconButton, Drawer, List, ListItem, ListItemText } from "@mui/material";
 import { Menu } from "@mui/icons-material";
@@ -12,13 +12,13 @@ import EditCoursePage from "./components/editCourse";
 const Sidebar = ({ open, onClose }) => {
   const handleLogout = () => {
     localStorage.removeItem("userToken");
-    window.location.href = "/";
+    window.location.href = "/"; 
   };
 
   return (
     <Drawer anchor="left" open={open} onClose={onClose}>
       <List sx={{ width: 250 }}>
-        <ListItem button component="a" href="/home">
+        <ListItem button component="a" href="#/home"> {/* ใช้ #/ สำหรับ HashRouter */}
           <ListItemText primary="🏠 Home" />
         </ListItem>
         <ListItem button onClick={handleLogout} sx={{ color: "red" }}>

@@ -10,7 +10,7 @@ const EditProfile = () => {
   const user = auth.currentUser;
   const navigate = useNavigate();
   const storage = getStorage();
-  const { cid } = useParams(); // ดึง cid จาก URL
+  const { cid } = useParams(); 
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -78,7 +78,7 @@ const EditProfile = () => {
   
       alert('อัปเดตโปรไฟล์สำเร็จ!');
   
-      navigate(`/manage-class/${cid ? cid : ''}`);
+      navigate("/home"); 
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์');
@@ -88,14 +88,14 @@ const EditProfile = () => {
   };
 
   return (
-    <Container  maxWidth="sm" sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: 10 }}>
+    <Container  maxWidth="sm" sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: 0 }}>
       <Card sx={{ 
         bgcolor: "#F3E5F5", 
         borderRadius: 4, 
         boxShadow: 4,
         padding: 3,
         maxWidth: "100%",
-        mt: 50,
+        mt: 5,
       }}>
         <CardContent sx={{ textAlign: "center", position: "relative" , marginTop:20 }}>
           <div style={{ position: "relative", display: "inline-block" }}>
