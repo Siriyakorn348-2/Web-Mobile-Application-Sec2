@@ -11,8 +11,8 @@ import EditCoursePage from "./components/editCourse";
 
 const Sidebar = ({ open, onClose }) => {
   const handleLogout = () => {
-    localStorage.removeItem("userToken"); // เคลียร์ Token หรือข้อมูลที่ใช้ล็อกอิน
-    window.location.href = "/"; // Redirect ไปหน้า Login
+    localStorage.removeItem("userToken"); 
+    window.location.href = "/"; 
   };
 
   return (
