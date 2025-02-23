@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, signOut, onAuthStateChanged } from 'firebase/auth';
 import { Button, Avatar, Typography, IconButton } from '@mui/material';
 import { Edit, AddCircle, ExitToApp, Menu } from '@mui/icons-material';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import '../css/home.css';
+import { getFirestore, collection, getDocs } from 'firebase/firestore'
+import '../css/style.css';
 
 const HomePage = () => {
   const [user, setUser] = useState(null);
