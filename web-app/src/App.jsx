@@ -35,7 +35,7 @@ const Navbar = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  if (location.pathname === "/") return null; // ซ่อน Navbar ถ้าอยู่หน้า Login
+  if (location.pathname === "/") return null; 
 
   return (
     <>
