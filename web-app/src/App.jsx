@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom"; 
 import { useState } from "react";
 import { AppBar, Toolbar, IconButton, Drawer, List, ListItem, ListItemText } from "@mui/material";
 import { Menu } from "@mui/icons-material";
@@ -11,17 +11,16 @@ import EditCoursePage from "./components/editCourse";
 
 const Sidebar = ({ open, onClose }) => {
   const handleLogout = () => {
-    localStorage.removeItem("userToken"); // เคลียร์ Token หรือข้อมูลที่ใช้ล็อกอิน
-    window.location.href = "/"; // Redirect ไปหน้า Login
+    localStorage.removeItem("userToken");
+    window.location.href = "/"; 
   };
 
   return (
     <Drawer anchor="left" open={open} onClose={onClose}>
       <List sx={{ width: 250 }}>
-        <ListItem button component="a" href="/home">
+        <ListItem button component="a" href="#/home"> {/* ใช้ #/ สำหรับ HashRouter */}
           <ListItemText primary="🏠 Home" />
         </ListItem>
-       
         <ListItem button onClick={handleLogout} sx={{ color: "red" }}>
           <ListItemText primary="🚪 Logout" />
         </ListItem>
@@ -30,19 +29,18 @@ const Sidebar = ({ open, onClose }) => {
   );
 };
 
-
 const Navbar = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  if (location.pathname === "/") return null; 
+  if (location.pathname === "/") return null;
 
   return (
     <>
       <AppBar position="fixed" sx={{ bgcolor: "#9575CD", px: 2 }}>
         <Toolbar>
-          <IconButton  edge="start" color="inherit" onClick={() => setOpen(true)}
-           sx={{ marginLeft: "auto","&:hover": { bgcolor: "#5E35B1" } }}>
+          <IconButton edge="start" color="inherit" onClick={() => setOpen(true)}
+            sx={{ marginLeft: "auto", "&:hover": { bgcolor: "#5E35B1" } }}>
             <Menu />
           </IconButton>
         </Toolbar>
@@ -54,7 +52,7 @@ const Navbar = () => {
 
 function App() {
   return (
-    <Router>
+    <>
       <Navbar />
       <Routes>
         <Route path="/" element={<LoginPage />} />
@@ -64,7 +62,7 @@ function App() {
         <Route path="/manage-class/:cid" element={<ClassroomPage />} />
         <Route path="/edit-course/:cid" element={<EditCoursePage />} />
       </Routes>
-    </Router>
+    </>
   );
 }
 

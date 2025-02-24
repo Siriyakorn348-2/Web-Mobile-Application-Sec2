@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TextField, Button, Avatar, Typography, Card, CardContent, CardActions, Container, IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import { getAuth, updateProfile } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 const EditProfile = () => {
@@ -10,6 +10,7 @@ const EditProfile = () => {
   const user = auth.currentUser;
   const navigate = useNavigate();
   const storage = getStorage();
+  const { cid } = useParams(); 
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -53,25 +54,31 @@ const EditProfile = () => {
   };
 
   const handleSave = async () => {
+    if (!user) {
+      alert('เกิดข้อผิดพลาด: ไม่พบข้อมูลผู้ใช้');
+      return;
+    }
+  
     try {
       setUploading(true);
       let updatedPhotoURL = user?.photoURL || '';
       let updatedDisplayName = user?.displayName || '';
-
+  
       if (imageFile) {
         updatedPhotoURL = await uploadImage(imageFile);
       }
       if (displayName.trim() !== '') {
         updatedDisplayName = displayName;
       }
-
+  
       await updateProfile(user, {
         displayName: updatedDisplayName,
         photoURL: updatedPhotoURL
       });
-
+  
       alert('อัปเดตโปรไฟล์สำเร็จ!');
-      navigate(`/manage-class/${cid}`);
+  
+      navigate("/home"); 
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์');
@@ -81,24 +88,22 @@ const EditProfile = () => {
   };
 
   return (
-    <Container  maxWidth="sm" sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: 10   }}>
+    <Container  maxWidth="sm" sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: 0 }}>
       <Card sx={{ 
         bgcolor: "#F3E5F5", 
         borderRadius: 4, 
         boxShadow: 4,
         padding: 3,
         maxWidth: "100%",
-        mt: 50,
+        mt: 5,
       }}>
         <CardContent sx={{ textAlign: "center", position: "relative" , marginTop:20 }}>
-          {/* Avatar & Edit Icon */}
           <div style={{ position: "relative", display: "inline-block" }}>
             <Avatar 
               src={imagePreview || photoURL} 
               alt={displayName} 
               sx={{ width: 100, height: 100, boxShadow: "0 3px 6px rgba(0,0,0,0.2)" }} 
             />
-            {/* Icon Edit รูป */}
             <input
               type="file"
               accept="image/*"
