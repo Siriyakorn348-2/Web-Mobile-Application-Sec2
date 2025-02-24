@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchCourseById, deleteCourseById } from "../firebase/courseService";
+import { fetchCourseById, deleteCourseById, fetchStudents, createCheckin, fetchCheckinHistory } from "../firebase/courseService";
 import { Card, CardContent, Typography, Button, Box, IconButton, Menu, MenuItem } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+
+import * as QRCode from 'qrcode.react';
 
 const ClassroomPage = () => {
   const { cid } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [checkinHistory, setCheckinHistory] = useState([]);
   const [menuAnchor, setMenuAnchor] = useState(null);
+  const [qrGenerated, setQrGenerated] = useState(false); // ใช้สถานะเพื่อเช็คว่า QRCode ถูกสร้างหรือยัง
+  const [showQR, setShowQR] = useState(false); // สถานะในการแสดง QR Code
 
   useEffect(() => {
     const getCourseData = async () => {
@@ -18,6 +24,28 @@ const ClassroomPage = () => {
       }
     };
     getCourseData();
+  }, [cid]);
+
+  // Fetch students for the course
+  useEffect(() => {
+    const getStudentsData = async () => {
+      if (cid) {
+        const data = await fetchStudents(cid);
+        setStudents(data);
+      }
+    };
+    getStudentsData();
+  }, [cid]);
+
+  // Fetch check-in history
+  useEffect(() => {
+    const getCheckinHistory = async () => {
+      if (cid) {
+        const data = await fetchCheckinHistory(cid);
+        setCheckinHistory(data);
+      }
+    };
+    getCheckinHistory();
   }, [cid]);
 
   const handleOpenMenu = (event) => {
@@ -42,16 +70,34 @@ const ClassroomPage = () => {
     }
   };
 
+  const handleCreateCheckin = async () => {
+    const checkinNo = new Date().getTime(); // Example check-in number
+    await createCheckin(cid, checkinNo);
+    // Copy student data to check-in scores with status = 0
+    await copyStudentsToCheckin(cid, checkinNo);
+    alert("Check-in created successfully!");
+  };
+
+  const copyStudentsToCheckin = async (cid, checkinNo) => {
+    // Copy student data to check-in scores with status = 0
+    const studentData = students.map(student => ({
+      studentID: student.studentID,
+      status: 0,
+    }));
+    await createCheckinScores(cid, checkinNo, studentData);
+  };
+
+  const createCheckinScores = async (cid, checkinNo, studentData) => {
+    // This should interact with your backend to store the check-in scores
+    console.log(`Creating check-in scores for ${cid} with check-in ${checkinNo}`, studentData);
+  };
+
   return (
-    <Box display="flex" justifyContent="center" mt={15} >
+    <Box display="flex" justifyContent="center" mt={15}>
       {course ? (
         <Card sx={{ bgcolor: "#fff", p: 3, borderRadius: 3, maxWidth: 400, position: "relative" }}>
           <CardContent>
-           
-            <IconButton
-              onClick={handleOpenMenu}
-              sx={{ position: "absolute", top: 10, right: 10 }}
-            >
+            <IconButton onClick={handleOpenMenu} sx={{ position: "absolute", top: 10, right: 10 }}>
               <MoreVertIcon />
             </IconButton>
 
@@ -75,6 +121,76 @@ const ClassroomPage = () => {
             <Typography variant="body1" textAlign="center" mt={2}>
               <strong>Room:</strong> {course.roomName}
             </Typography>
+
+            {/* QR Code Section */}
+            <Box display="flex" justifyContent="center" mt={4}>
+              <QRCode value={`https://yourapp.com/classroom/${cid}`} />
+            </Box>
+            <Button variant="contained" color="primary" fullWidth sx={{ mt: 2 }} onClick={() => window.open(`https://yourapp.com/classroom/${cid}`, "_blank")}>
+              Scan QR Code to Register
+            </Button>
+
+            {/* Students List */}
+            <Box mt={3}>
+              <Typography variant="h6" align="center" mb={2}>
+                Registered Students
+              </Typography>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Image</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((student, index) => (
+                    <tr key={student.studentID}>
+                      <td>{index + 1}</td>
+                      <td>{student.studentID}</td>
+                      <td>{student.name}</td>
+                      <td><img src={student.imageURL || "default-avatar.jpg"} alt={student.name} width={50} /></td>
+                      <td>{student.status === 0 ? "Not Checked In" : "Checked In"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Box>
+
+            <Button variant="contained" color="primary" fullWidth sx={{ mt: 2 }} onClick={handleCreateCheckin}>
+              Create Check-in
+            </Button>
+
+            {/* Check-in History */}
+            <Box mt={3}>
+              <Typography variant="h6" align="center" mb={2}>
+                Check-in History
+              </Typography>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Attendees</th>
+                    <th>Status</th>
+                    <th>Manage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {checkinHistory.map((checkin, index) => (
+                    <tr key={checkin.checkinNo}>
+                      <td>{index + 1}</td>
+                      <td>{new Date(checkin.timestamp).toLocaleString()}</td>
+                      <td>{checkin.attendeesCount}</td>
+                      <td>{checkin.status}</td>
+                      <td><Button variant="outlined" onClick={() => alert(`Manage check-in ${checkin.checkinNo}`)}>Manage</Button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Box>
           </CardContent>
         </Card>
       ) : (

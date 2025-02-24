@@ -1,6 +1,5 @@
-import { Redirect } from "expo-router";
+import { registerRootComponent } from 'expo';
 
-export default function Index() {
-  return <Redirect href="/screens/Login" />;
-  
-}
+import App from './App';
+
+registerRootComponent(App);

@@ -1,154 +1,119 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Button, TextInput, Alert, FlatList, Modal } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { Camera } from "expo-camera";
-import { getAuth } from "firebase/auth";
-import { getDatabase, ref, set, get, child } from "firebase/database";
+import { View, Text, ActivityIndicator, StyleSheet, SafeAreaView, Button } from "react-native";
+import { getDoc, doc } from "firebase/firestore";
+import { db, auth } from "../firebase/firebaseConfig";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
-export default function HomeScreen() {
-  const [user, setUser] = useState(null);
-  const [cid, setCid] = useState(""); // รหัสวิชา
-  const [stdid, setStdId] = useState(""); // รหัสนักศึกษา
-  const [name, setName] = useState(""); // ชื่อ
-  const [hasPermission, setHasPermission] = useState(null);
-  const [scanning, setScanning] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [classrooms, setClassrooms] = useState([]); // รายการวิชา
-  const auth = getAuth();
-  const db = getDatabase();
-  const navigation = useNavigation();
+const HomeScreen = ({ navigation }) => {
+  const [userInfo, setUserInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        fetchClassrooms(currentUser.uid);
+    setLoading(true);
+
+    if (auth.currentUser) {
+      console.log("✅ พบผู้ใช้ล็อกอินอยู่:", auth.currentUser.uid);
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      
+      getDoc(userRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          setUserInfo(docSnap.data());
+        } else {
+          console.warn(" ไม่พบข้อมูลผู้ใช้ใน Firestore");
+        }
+        setLoading(false);
+      }).catch((error) => {
+        console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
+        setLoading(false);
+      });
+    } else {
+      console.log("ยังไม่มีข้อมูลผู้ใช้");
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        console.log("✅ ผู้ใช้ล็อกอินอยู่ (จาก onAuthStateChanged):", user.uid);
+        const userRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+          setUserInfo(docSnap.data());
+        } else {
+          console.warn("⚠️ ไม่พบข้อมูลผู้ใช้ใน Firestore");
+        }
       } else {
-        setUser(null);
+        console.log("ผู้ใช้ยังไม่ได้ล็อกอิน! กำลังเปลี่ยนหน้าไป Login...");
+        navigation.replace("Login");
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const fetchClassrooms = async (uid) => {
-    const dbRef = ref(db, `/users/${uid}/classroom`);
-    const snapshot = await get(dbRef);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const classList = Object.keys(data).map((key) => ({
-        id: key,
-        status: data[key].status,
-      }));
-      setClassrooms(classList);
+ 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigation.replace("Login");
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการล็อกเอาต์:", error);
     }
-  };
-
-  const handleRegister = async () => {
-    if (!cid || !stdid || !name) {
-      Alert.alert("กรุณากรอกข้อมูลให้ครบ");
-      return;
-    }
-
-    const uid = user.uid;
-
-    set(ref(db, `/classroom/${cid}/students/${uid}`), {
-      stdid: stdid,
-      name: name,
-    });
-
-    set(ref(db, `/users/${uid}/classroom/${cid}/status`), 2);
-
-    Alert.alert("✅ ลงทะเบียนสำเร็จ!");
-    fetchClassrooms(uid); // รีโหลดวิชาที่เพิ่มใหม่
-  };
-
-  const handleAddClassroom = async () => {
-    if (!cid) {
-      Alert.alert("กรุณากรอกรหัสวิชา");
-      return;
-    }
-
-    const uid = user.uid;
-    set(ref(db, `/users/${uid}/classroom/${cid}`), { status: 2 });
-
-    Alert.alert("✅ เพิ่มวิชาสำเร็จ!");
-    setModalVisible(false);
-    fetchClassrooms(uid); // รีโหลดรายการวิชา
   };
 
   return (
-    <View style={{ padding: 20 }}>
-      {user ? (
-        <>
-          <Text>👤 ชื่อ: {user.displayName || "ไม่ระบุ"}</Text>
-          <Text>📧 E-mail: {user.email}</Text>
-
-          <FlatList
-            data={classrooms}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Text>📚 วิชา: {item.id} (สถานะ: {item.status})</Text>
-            )}
-          />
-
-          <Button title="➕ เพิ่มวิชา" onPress={() => setModalVisible(true)} />
-          <Button title="📷 สแกน QR Code" onPress={() => setScanning(true)} />
-
-          {scanning && (
-            <Camera
-              style={{ width: 300, height: 300 }}
-              onBarCodeScanned={({ type, data }) => {
-                if (type === "qr") {
-                  setCid(data);
-                  setScanning(false);
-                }
-              }}
-            />
-          )}
-
-          {/* Modal สำหรับเพิ่มวิชา */}
-          <Modal visible={modalVisible} transparent={true} animationType="slide">
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text>📌 กรอกรหัสวิชา</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="รหัสวิชา (CID)"
-                  value={cid}
-                  onChangeText={setCid}
-                />
-                <Button title="✅ เพิ่มวิชา" onPress={handleAddClassroom} />
-                <Button title="❌ ปิด" onPress={() => setModalVisible(false)} />
-              </View>
-            </View>
-          </Modal>
-        </>
-      ) : (
-        <Text>กรุณาเข้าสู่ระบบ</Text>
-      )}
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.card}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#A68AC4" />
+        ) : userInfo ? (
+          <>
+            <Text style={styles.title}>👋 สวัสดี, {userInfo.name}!</Text>
+            <Text style={styles.email}>📧 {userInfo.email}</Text>
+            <Button title="เพิ่มห้องเรียน" onPress={() => navigation.navigate("JoinClassScreen")} color="#5A67D8" />
+            <Button title="Logout" onPress={handleLogout} color="#D9534F" />
+          </>
+        ) : (
+          <Text style={styles.loadingText}>⏳ กำลังโหลดข้อมูล...</Text>
+        )}
+      </View>
+    </SafeAreaView>
   );
-}
-
-const styles = {
-  input: {
-    borderWidth: 1,
-    padding: 10,
-    marginVertical: 5,
-    borderRadius: 5,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    width: 300,
-    alignItems: "center",
-  },
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F6F0FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    width: "85%",
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: "#A68AC4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#7A5ACF",
+    marginBottom: 8,
+  },
+  email: {
+    fontSize: 16,
+    color: "#6A6A6A",
+    marginBottom: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#6A6A6A",
+  },
+});
+
+export default HomeScreen;
