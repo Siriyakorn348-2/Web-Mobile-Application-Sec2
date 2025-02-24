@@ -17,7 +17,7 @@ const Login = () => {
     <Styledcontainer>
       <StatusBar style="dark" />
       <InnerContainer>
-        <PageTitle>MobileApp</PageTitle>
+        <PageTitle>MobileApplication</PageTitle>
         <SubTitle>Account Login</SubTitle>
         <Formik
           initialValues={{ email: "", password: "" }}
