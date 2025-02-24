@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from 'firebase/firestore';
 
-// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAK7O2L6dWCEMcgMHz2Mt9xxvxcN03a4zI",
   authDomain: "petty-hubby.firebaseapp.com",
@@ -14,9 +13,18 @@ const firebaseConfig = {
   measurementId: "G-0BX2B6YTM0"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app); // 🔥 เพิ่ม Firestore
+const db = getFirestore(app); 
 
-export { auth, db }; // 🔥 Export db ด้วย
+// ตั้งค่าให้ Firebase Auth จำ session
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log("🔥 Firebase Auth: จำ session แล้ว!");
+  })
+  .catch((error) => {
+    console.error("⚠️ ตั้งค่า Persistence ล้มเหลว:", error);
+  });
+
+export { auth, db };
+export default app;
