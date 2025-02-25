@@ -38,7 +38,7 @@ export const updateCourseById = async (courseId, updatedData, newImage) => {
     const courseRef = doc(db, "classroom", courseId);
 
     if (newImage) {
-      const storageRef = ref(storage, `courseImages/${courseId}`);
+      const storageRef = ref(storage, `courseImages/${courseId}/${newImage.name}`);
       await uploadBytes(storageRef, newImage);
       const imageURL = await getDownloadURL(storageRef);
       updatedData.imageURL = imageURL;
