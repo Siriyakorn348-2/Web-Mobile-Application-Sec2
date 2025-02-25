@@ -31,6 +31,7 @@ const AddCourse = () => {
 
   const uploadImageToStorage = async (file) => {
     if (!file) return null;
+    const uniqueFileName = `${Date.now()}-${file.name}`;
     const storageRef = ref(storage, `classroom_images/${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -41,7 +42,10 @@ const AddCourse = () => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setProgress(progress);
         },
-        (error) => reject(error),
+        (error) => {
+          console.error("Upload error:", error);
+          alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+        },
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           resolve(downloadURL);
