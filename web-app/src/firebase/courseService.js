@@ -181,3 +181,26 @@ export const addAnswer = async (cid, cno, questionNo, answerText) => {
   }
 };
 
+export const deleteAnswers = async (cid, cno, questionNo) => {
+  try {
+    if (!cid || !cno || !questionNo) {
+      throw new Error("Missing required parameters");
+    }
+    const answersRef = collection(db, `classroom/${cid}/checkin/${cno}/questions/${questionNo}/answers`);
+    const querySnapshot = await getDocs(answersRef);
+    const deletePromises = querySnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
+    await Promise.all(deletePromises);
+    console.log("All answers deleted successfully for questionNo:", questionNo);
+    return true;
+  } catch (error) {
+    console.error("Error deleting answers:", {
+      message: error.message,
+      cid,
+      cno,
+      questionNo,
+      stack: error.stack,
+    });
+    return false;
+  }
+};
+
