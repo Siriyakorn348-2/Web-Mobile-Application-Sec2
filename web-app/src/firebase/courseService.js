@@ -1,8 +1,11 @@
-import { getFirestore, doc, getDoc, deleteDoc, updateDoc, collection, getDocs, setDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, deleteDoc, updateDoc, collection, getDocs, setDoc,onSnapshot} from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const db = getFirestore();
 const storage = getStorage();
+
+console.log("courseService.js loaded - Version: 1.2");
+console.log("onSnapshot defined:", typeof onSnapshot === 'function');
 
 export const fetchCourseById = async (cid) => {
   try {
@@ -92,3 +95,89 @@ export const fetchCheckinHistory = async (classroomId) => {
     throw error;
   }
 };
+
+export const saveQuestion = async (cid, cno, questionNo, questionText) => {
+  try {
+    if (!cid || !cno || !questionNo || !questionText) {
+      throw new Error("Missing required parameters");
+    }
+    const questionRef = doc(db, `classroom/${cid}/checkin/${cno}/questions`, questionNo);
+    console.log("Saving question at:", `classroom/${cid}/checkin/${cno}/questions/${questionNo}`);
+    await setDoc(questionRef, {
+      question_no: questionNo,
+      question_text: questionText,
+      question_show: true,
+      timestamp: new Date().toISOString()
+    }, { merge: true });
+    console.log("Question saved successfully for cid:", cid, "cno:", cno, "questionNo:", questionNo);
+    return true;
+  } catch (error) {
+    console.error("Error saving question:", {
+      message: error.message,
+      cid,
+      cno,
+      questionNo,
+      stack: error.stack
+    });
+    return false;
+  }
+};
+
+export const closeQuestion = async (cid, cno, questionNo) => {
+  try {
+    if (!cid || !cno || !questionNo) {
+      throw new Error("Missing required parameters");
+    }
+    const questionRef = doc(db, `classroom/${cid}/checkin/${cno}/questions`, questionNo);
+    console.log("Attempting to close question at:", `classroom/${cid}/checkin/${cno}/questions/${questionNo}`);
+    const docSnap = await getDoc(questionRef);
+    if (!docSnap.exists()) {
+      console.error("Document does not exist at path:", `classroom/${cid}/checkin/${cno}/questions/${questionNo}`);
+      throw new Error("Question document does not exist");
+    }
+    await updateDoc(questionRef, { question_show: false });
+    console.log("Question closed successfully at:", `classroom/${cid}/checkin/${cno}/questions/${questionNo}`);
+    return true;
+  } catch (error) {
+    console.error("Detailed error closing question:", {
+      message: error.message,
+      cid,
+      cno,
+      questionNo,
+      stack: error.stack
+    });
+    return false;
+  }
+};
+
+export const fetchQuestionRealtime = (cid, cno, questionNo, callback) => {
+  const questionRef = doc(db, `classroom/${cid}/checkin/${cno}/questions`, questionNo);
+  return onSnapshot(questionRef, (doc) => {
+    if (doc.exists()) {
+      callback(doc.data());
+    } else {
+      callback(null);
+    }
+  });
+};
+
+export const fetchAnswersRealtime = (cid, cno, questionNo, callback) => {
+  const answersRef = collection(db, `classroom/${cid}/checkin/${cno}/questions/${questionNo}/answers`);
+  return onSnapshot(answersRef, (snapshot) => {
+    const answersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    callback(answersData.map(answer => answer.text));
+  });
+};
+
+export const addAnswer = async (cid, cno, questionNo, answerText) => {
+  try {
+    const answerRef = doc(collection(db, `classroom/${cid}/checkin/${cno}/questions/${questionNo}/answers`));
+    await setDoc(answerRef, { text: answerText, timestamp: new Date().toISOString() });
+    console.log("Answer added successfully");
+    return true;
+  } catch (error) {
+    console.error("Error adding answer:", error.message);
+    return false;
+  }
+};
+

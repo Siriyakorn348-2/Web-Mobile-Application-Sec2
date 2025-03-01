@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { fetchCourseById, deleteCourseById, fetchStudents, createCheckin, fetchCheckinHistory } from "../firebase/courseService";
 import { Card, CardContent, Typography, Button, Box, IconButton, Menu, MenuItem } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { Link } from "react-router-dom";
+
 
 import QRCode from "react-qr-code";
 
@@ -198,12 +200,23 @@ const ClassroomPage = () => {
                 </tbody>
               </table>
             </Box>
+
+             {/* Quiz Button */}
+             <Box mt={2} display="flex" justifyContent="center">
+                <Link to={`/quiz/${cid}`}>
+                  <Button variant="contained" color="success">
+                    Quiz
+                  </Button>
+                </Link>
+              </Box>
+  
           </CardContent>
         </Card>
       ) : (
         <Typography>Loading...</Typography>
       )}
     </Box>
+    
   );
 };
 
