@@ -4,7 +4,7 @@ import { fetchCourseById, deleteCourseById, fetchStudents, createCheckin, fetchC
 import { Card, CardContent, Typography, Button, Box, IconButton, Menu, MenuItem } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
-import * as QRCode from 'qrcode.react';
+import QRCode from "react-qr-code";
 
 const ClassroomPage = () => {
   const { cid } = useParams();
@@ -13,8 +13,8 @@ const ClassroomPage = () => {
   const [students, setStudents] = useState([]);
   const [checkinHistory, setCheckinHistory] = useState([]);
   const [menuAnchor, setMenuAnchor] = useState(null);
-  const [qrGenerated, setQrGenerated] = useState(false); // ใช้สถานะเพื่อเช็คว่า QRCode ถูกสร้างหรือยัง
-  const [showQR, setShowQR] = useState(false); // สถานะในการแสดง QR Code
+  const [qrGenerated, setQrGenerated] = useState(false); 
+  const [showQR, setShowQR] = useState(false); 
 
   useEffect(() => {
     const getCourseData = async () => {
@@ -146,16 +146,23 @@ const ClassroomPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map((student, index) => (
-                    <tr key={student.studentID}>
-                      <td>{index + 1}</td>
-                      <td>{student.studentID}</td>
-                      <td>{student.name}</td>
-                      <td><img src={student.imageURL || "default-avatar.jpg"} alt={student.name} width={50} /></td>
-                      <td>{student.status === 0 ? "Not Checked In" : "Checked In"}</td>
-                    </tr>
-                  ))}
-                </tbody>
+  {students && Array.isArray(students) ? (
+    students.map((student, index) => (
+      <tr key={student.studentID}>
+        <td>{index + 1}</td>
+        <td>{student.studentID}</td>
+        <td>{student.name}</td>
+        <td><img src={student.imageURL || "default-avatar.jpg"} alt={student.name} width={50} /></td>
+        <td>{student.status === 0 ? "Not Checked In" : "Checked In"}</td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td colSpan="5">No students found</td>
+    </tr>
+  )}
+</tbody>
+
               </table>
             </Box>
 

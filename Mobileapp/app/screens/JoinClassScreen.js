@@ -13,7 +13,7 @@ const JoinClassScreen = ({ navigation }) => {
     }
 
     try {
-      const classRef = doc(db, "classroom", cid); // ใช้ cid แทน courseID
+      const classRef = doc(db, "classroom", cid); 
       const classSnap = await getDoc(classRef);
 
       if (!classSnap.exists()) {
