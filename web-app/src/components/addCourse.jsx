@@ -61,17 +61,22 @@ const AddCourse = () => {
       setUploading(true);
       const imageUrl = await uploadImageToStorage(imageFile);
 
+      // สร้างรหัสห้องเรียนอัตโนมัติ
       const courseRef = doc(collection(db, "classroom"));
+      const cid = courseRef.id; // ใช้รหัสนี้เป็น {cid}
+
+      // บันทึก UID ของอาจารย์ที่เป็นเจ้าของห้องเรียน
+      await setDoc(doc(db, `classroom/${cid}/owner`), { uid: user.uid });
+
+      // บันทึกข้อมูลของห้องเรียนใน /classroom/{cid}/info/
       const courseData = {
-        courseID,
-        courseName,
-        roomName,
-        imageURL: imageUrl,
-        owner: user.uid,
+        code: courseID,       
+        name: courseName,    
+        room: roomName,      
+        photo: imageUrl       
       };
 
-      await setDoc(courseRef, courseData);
-      await setDoc(doc(db, `users/${user.uid}/classroom/${courseRef.id}`), { status: 1 });
+      await setDoc(doc(db, `classroom/${cid}/info`), courseData);
 
       alert("บันทึกคอร์สสำเร็จ!");
       navigate("/home");
