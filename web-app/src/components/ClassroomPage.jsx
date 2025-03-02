@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchCourseById, deleteCourseById, fetchStudents, createCheckin, fetchCheckinHistory } from "../firebase/courseService";
-import { Card, CardContent, Typography, Button, Box, IconButton, Menu, MenuItem } from "@mui/material";
+import { Box, Button, Card, CardContent, IconButton, Menu, MenuItem, Typography, Drawer, List, ListItem, ListItemButton, ListItemText,ListItemIcon } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { QrCode, ListAlt, CheckCircle, HowToReg, QuestionAnswer } from "@mui/icons-material";
+
+
 
 import QRCode from "react-qr-code";
 
@@ -16,6 +19,8 @@ const ClassroomPage = () => {
   const [qrGenerated, setQrGenerated] = useState(false); 
   const [showQR, setShowQR] = useState(false); 
 
+  const [sidebarOpen, setSidebarOpen] = useState(false); 
+
   useEffect(() => {
     const getCourseData = async () => {
       if (cid) {
@@ -26,7 +31,6 @@ const ClassroomPage = () => {
     getCourseData();
   }, [cid]);
 
-  // Fetch students for the course
   useEffect(() => {
     const getStudentsData = async () => {
       if (cid) {
@@ -37,7 +41,7 @@ const ClassroomPage = () => {
     getStudentsData();
   }, [cid]);
 
-  // Fetch check-in history
+
   useEffect(() => {
     const getCheckinHistory = async () => {
       if (cid) {
@@ -71,9 +75,9 @@ const ClassroomPage = () => {
   };
 
   const handleCreateCheckin = async () => {
-    const checkinNo = new Date().getTime(); // Example check-in number
+    const checkinNo = new Date().getTime(); 
     await createCheckin(cid, checkinNo);
-    // Copy student data to check-in scores with status = 0
+    
     await copyStudentsToCheckin(cid, checkinNo);
     alert("Check-in created successfully!");
   };
@@ -92,10 +96,67 @@ const ClassroomPage = () => {
     console.log(`Creating check-in scores for ${cid} with check-in ${checkinNo}`, studentData);
   };
 
+  
+
   return (
     <Box display="flex" justifyContent="center" mt={15}>
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: 280,
+        flexShrink: 0,
+        "& .MuiDrawer-paper": {
+          width: 280,
+          mt: 8,
+          backgroundColor: "#F3E8FF",
+          borderRight: "2px solid #D8BFD8",
+          boxShadow: "2px 0 10px rgba(0, 0, 0, 0.1)",
+        },
+      }}
+    >
+     
+      <Box sx={{ overflow: "hidden", display: "flex", flexDirection: "column", height: "100vh" }}>
+        <List sx={{ flexGrow: 1 }}>
+          {[
+            { text: "Show QR Code", icon: <QrCode />, action: () => navigate(`/classroom/${cid}/qr`) },
+            { text: "Show Student List", icon: <ListAlt />, action: () => navigate(`/classroom/${cid}/students`) },
+            { text: "Add Check-in", icon: <CheckCircle />, action: () => navigate(`/classroom/${cid}/add-checkin`) },
+            { text: "Check-in", icon: <HowToReg />, action: () => navigate(`/classroom/${cid}/checkin`) },
+            { text: "ถามตอบ", icon: <QuestionAnswer />, action: () => navigate(`/classroom/${cid}/qa`) },
+            
+
+
+          ].map((item, index) => (
+            <ListItemButton
+              key={index}
+              onClick={item.action}
+              sx={{
+                color: "#6A0572",
+                fontWeight: "bold",
+                transition: "all 0.3s ease",
+                padding: "15px 20px",
+                fontSize: "1.1rem",
+                "&:hover": {
+                  backgroundColor: "#E6CCFF",
+                  transform: "scale(1.02)", 
+                },
+                "&:active": {
+                  backgroundColor: "#D8BFD8",
+                  transform: "scale(0.98)",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: "#6A0572", minWidth: "40px" }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          ))}
+        </List>
+      </Box>
+    </Drawer>
+
+
       {course ? (
-        <Card sx={{ bgcolor: "#fff", p: 3, borderRadius: 3, maxWidth: 400, position: "relative" }}>
+        <Card sx={{ bgcolor: "#fff", p: 3, borderRadius: 3, maxWidth: 2000, position: "relative" }}>
           <CardContent>
             <IconButton onClick={handleOpenMenu} sx={{ position: "absolute", top: 10, right: 10 }}>
               <MoreVertIcon />
@@ -122,82 +183,9 @@ const ClassroomPage = () => {
               <strong>Room:</strong> {course.roomName}
             </Typography>
 
-            {/* QR Code Section */}
-            <Box display="flex" justifyContent="center" mt={4}>
-              <QRCode value={`https://yourapp.com/classroom/${cid}`} />
-            </Box>
-            <Button variant="contained" color="primary" fullWidth sx={{ mt: 2 }} onClick={() => window.open(`https://yourapp.com/classroom/${cid}`, "_blank")}>
-              Scan QR Code to Register
-            </Button>
+          
 
-            {/* Students List */}
-            <Box mt={3}>
-              <Typography variant="h6" align="center" mb={2}>
-                Registered Students
-              </Typography>
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Image</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-  {students && Array.isArray(students) ? (
-    students.map((student, index) => (
-      <tr key={student.studentID}>
-        <td>{index + 1}</td>
-        <td>{student.studentID}</td>
-        <td>{student.name}</td>
-        <td><img src={student.imageURL || "default-avatar.jpg"} alt={student.name} width={50} /></td>
-        <td>{student.status === 0 ? "Not Checked In" : "Checked In"}</td>
-      </tr>
-    ))
-  ) : (
-    <tr>
-      <td colSpan="5">No students found</td>
-    </tr>
-  )}
-</tbody>
 
-              </table>
-            </Box>
-
-            <Button variant="contained" color="primary" fullWidth sx={{ mt: 2 }} onClick={handleCreateCheckin}>
-              Create Check-in
-            </Button>
-
-            {/* Check-in History */}
-            <Box mt={3}>
-              <Typography variant="h6" align="center" mb={2}>
-                Check-in History
-              </Typography>
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Date</th>
-                    <th>Attendees</th>
-                    <th>Status</th>
-                    <th>Manage</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {checkinHistory.map((checkin, index) => (
-                    <tr key={checkin.checkinNo}>
-                      <td>{index + 1}</td>
-                      <td>{new Date(checkin.timestamp).toLocaleString()}</td>
-                      <td>{checkin.attendeesCount}</td>
-                      <td>{checkin.status}</td>
-                      <td><Button variant="outlined" onClick={() => alert(`Manage check-in ${checkin.checkinNo}`)}>Manage</Button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Box>
           </CardContent>
         </Card>
       ) : (
