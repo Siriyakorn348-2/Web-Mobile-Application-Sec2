@@ -8,6 +8,11 @@ import AddCourse from "./components/addCourse";
 import EditProfile from "./components/editProfile";
 import ClassroomPage from "./components/ClassroomPage";
 import EditCoursePage from "./components/editCourse";
+import CheckinPage from "./components/CheckInPage";
+import QAPage from "./components/QAPage";
+import StudentList from "./components/StudentList";
+
+
 
 const Sidebar = ({ open, onClose }) => {
   const handleLogout = () => {
@@ -61,6 +66,11 @@ function App() {
         <Route path="/edit-profile" element={<EditProfile />} />
         <Route path="/manage-class/:cid" element={<ClassroomPage />} />
         <Route path="/edit-course/:cid" element={<EditCoursePage />} />
+        <Route path="/classroom/:cid/checkin" element={<CheckinPage />} />
+        <Route path="/classroom/:cid/checkin/:cno/qna" element={<QAPage />} />
+        <Route path="/classroom/:cid/students" element={<StudentList />} />
+
+
       </Routes>
     </>
   );
