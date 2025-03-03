@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Alert, TouchableOpacity, SafeAreaView, StatusBar, Dimensions, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, Alert, TouchableOpacity, SafeAreaView, StatusBar, Dimensions, StyleSheet, ScrollView, Image } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -11,72 +12,116 @@ const HomeScreen = () => {
     const auth = getAuth();
     const db = getFirestore();
     const user = auth.currentUser;
-
+    const navigation = useNavigation();
+    const [classroomDetails, setClassroomDetails] = useState({});
     const [userData, setUserData] = useState(null);
     const [roomCode, setRoomCode] = useState('');
     const [scanning, setScanning] = useState(false);
     const [scanned, setScanned] = useState(false);
     const [permission, requestPermission] = useCameraPermissions();
+    const [studentIdInput, setStudentIdInput] = useState('');
+    const [nameInput, setNameInput] = useState('');
+    const [showInputFields, setShowInputFields] = useState(false);
+    const [registeredRooms, setRegisteredRooms] = useState([]);
+    const [loading, setLoading] = useState(true); // เพิ่ม state สำหรับ loading
+
+    const fetchClassroomDetails = async (roomCode) => {
+        try {
+            const ownerUid = await findClassroomOwner(roomCode);
+            console.log(`Fetching details for room: ${roomCode}, Owner UID: ${ownerUid}`);
+            if (ownerUid) {
+                const classroomRef = doc(db, `users/${ownerUid}/classroom`, roomCode);
+                const classroomSnap = await getDoc(classroomRef);
+                if (classroomSnap.exists()) {
+                    const data = classroomSnap.data();
+                    console.log(`Data for ${roomCode}:`, data);
+                    setClassroomDetails(prev => ({
+                        ...prev,
+                        [roomCode]: {
+                            courseID: data.courseID,
+                            courseName: data.courseName,
+                            img: data.img,
+                            owner: data.owner,
+                            roomName: data.roomName
+                        }
+                    }));
+                } else {
+                    console.log(`No data found for room ${roomCode}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching classroom details:', error.message);
+        }
+    };
 
     useEffect(() => {
+        if (!user) {
+            console.log('No user logged in');
+            setLoading(false);
+            return;
+        }
+
         const fetchUserData = async () => {
-            if (user) {
+            try {
                 const userRef = doc(db, 'users', user.uid);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
                     setUserData(userSnap.data());
+                    console.log('User data:', userSnap.data());
+                } else {
+                    console.log('No user data found');
                 }
+            } catch (error) {
+                console.error('Error fetching user data:', error.message);
             }
         };
+
+        const fetchRegisteredRooms = async () => {
+            try {
+                const roomsRef = collection(db, `users/${user.uid}/classroom`);
+                const roomsSnap = await getDocs(roomsRef);
+                const roomsList = roomsSnap.docs.map(doc => doc.id);
+                console.log('Registered rooms:', roomsList);
+                setRegisteredRooms(roomsList);
+                if (roomsList.length > 0) {
+                    await Promise.all(roomsList.map(room => {
+                        if (room && room.trim() !== '') {
+                            return fetchClassroomDetails(room);
+                        }
+                        return null;
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching registered rooms:', error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchUserData();
+        fetchRegisteredRooms();
     }, [user]);
 
     const registerRoomCode = async (code) => {
-        if (code.trim() === '') {
+        if (!code.trim()) {
             Alert.alert('ข้อผิดพลาด', 'กรุณากรอกรหัสห้อง');
             return;
         }
         try {
-            let foundOwner = null;
-            const usersRef = collection(db, 'users');
-            const usersSnap = await getDocs(usersRef);
-            for (const userDoc of usersSnap.docs) {
-                const ownerUid = userDoc.id;
-                const classroomRef = doc(db, `users/${ownerUid}/classroom`, code);
-                const classroomSnap = await getDoc(classroomRef);
-                if (classroomSnap.exists()) {
-                    foundOwner = ownerUid;
-                    break;
-                }
-            }
-            if (!foundOwner) {
+            const ownerUid = await findClassroomOwner(code);
+            if (!ownerUid) {
                 Alert.alert('ไม่พบรหัสห้อง', 'กรุณาตรวจสอบรหัสห้องอีกครั้ง');
                 return;
             }
-            await setDoc(
-                doc(db, `users/${foundOwner}/classroom/${code}/students`, user.uid),
-                {
-                    uid: user.uid,
-                    stid: userData?.stid || '',
-                    name: userData?.name || '',
-                    email: userData?.email || '',
-                    phone: userData?.phone || '',
-                    status: 0,
-                }
-            );
-            Alert.alert('ลงทะเบียนสำเร็จ', `ลงทะเบียนเข้าห้อง ${code} เรียบร้อยแล้ว`);
+            setRoomCode(code);
+            setShowInputFields(true);
         } catch (error) {
-            console.error('Register with code error:', error);
+            console.error('Register with code error:', error.message);
             Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถลงทะเบียนได้');
         }
     };
 
-    const handleRegisterWithCode = async () => {
-        await registerRoomCode(roomCode);
-        setRoomCode('');
-    };
-
-    const handleBarCodeScanned = async ({ type, data }) => {
+    const handleBarCodeScanned = async ({ data }) => {
         setScanned(true);
         setScanning(false);
         await registerRoomCode(data);
@@ -88,12 +133,68 @@ const HomeScreen = () => {
             setScanning(true);
             setScanned(false);
         } else {
-            Alert.alert(
-                'ไม่ได้รับอนุญาตให้ใช้กล้อง',
-                'กรุณาอนุญาตให้แอพเข้าถึงกล้องในการตั้งค่า'
-            );
+            Alert.alert('ไม่ได้รับอนุญาตให้ใช้กล้อง', 'กรุณาอนุญาตให้แอพเข้าถึงกล้องในการตั้งค่า');
         }
     };
+
+    const confirmRegistration = async () => {
+        if (!roomCode.trim() || !studentIdInput.trim() || !nameInput.trim()) {
+            Alert.alert('⚠️ ข้อผิดพลาด', 'กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
+        }
+        try {
+            await setDoc(doc(db, `classroom/${roomCode}/students`, user.uid), {
+                stdid: studentIdInput,
+                name: nameInput,
+                status: 2,
+            }, { merge: true });
+
+            await setDoc(doc(db, `users/${user.uid}/classroom`, roomCode), { status: 2 }, { merge: true });
+
+            Alert.alert('✅ เข้าร่วมสำเร็จ', `คุณได้เข้าห้องเรียน ${roomCode} เรียบร้อยแล้ว!`);
+            setShowInputFields(false);
+            setStudentIdInput('');
+            setNameInput('');
+            setRegisteredRooms(prev => [...prev, roomCode]);
+            setRoomCode('');
+            navigation.navigate('Classroom', { roomCode });
+        } catch (error) {
+            console.error('Confirm registration error:', error.message);
+            Alert.alert('❌ เกิดข้อผิดพลาด', 'โปรดลองอีกครั้งในภายหลัง');
+        }
+    };
+
+    const navigateToClassroom = (roomCode) => {
+        navigation.navigate('Classroom', { roomCode });
+    };
+
+    const findClassroomOwner = async (code) => {
+        try {
+            const usersRef = collection(db, 'users');
+            const usersSnap = await getDocs(usersRef);
+            for (const userDoc of usersSnap.docs) {
+                const ownerUid = userDoc.id;
+                const classroomRef = doc(db, `users/${ownerUid}/classroom`, code);
+                const classroomSnap = await getDoc(classroomRef);
+                if (classroomSnap.exists()) {
+                    return ownerUid;
+                }
+            }
+            console.log(`No owner found for room code: ${code}`);
+            return null;
+        } catch (error) {
+            console.error('Error finding classroom owner:', error.message);
+            return null;
+        }
+    };
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.infoText}>กำลังโหลดข้อมูล...</Text>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -122,11 +223,37 @@ const HomeScreen = () => {
                             value={roomCode}
                             onChangeText={setRoomCode}
                         />
-                        <TouchableOpacity style={styles.button} onPress={handleRegisterWithCode}>
-                            <Text style={styles.buttonText}>ลงทะเบียน</Text>
+                        <TouchableOpacity style={styles.button} onPress={() => registerRoomCode(roomCode)}>
+                            <Text style={styles.buttonText}>ตรวจสอบห้องเรียน</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                {showInputFields && (
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <MaterialIcons name="person" size={24} color="#3498db" />
+                            <Text style={styles.cardTitle}>ข้อมูลนักศึกษา</Text>
+                        </View>
+                        <View style={styles.cardContent}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="รหัสนักศึกษา"
+                                value={studentIdInput}
+                                onChangeText={setStudentIdInput}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="ชื่อ-สกุล"
+                                value={nameInput}
+                                onChangeText={setNameInput}
+                            />
+                            <TouchableOpacity style={styles.button} onPress={confirmRegistration}>
+                                <Text style={styles.buttonText}>ลงทะเบียนเข้าร่วมห้องเรียน</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
 
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
@@ -137,6 +264,50 @@ const HomeScreen = () => {
                         <TouchableOpacity style={styles.button} onPress={startScanning}>
                             <Text style={styles.buttonText}>เปิดสแกนเนอร์</Text>
                         </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <MaterialIcons name="class" size={24} color="#3498db" />
+                        <Text style={styles.cardTitle}>ห้องเรียนที่ลงทะเบียน</Text>
+                    </View>
+                    <View style={styles.cardContent}>
+                        {registeredRooms.length > 0 ? (
+                            registeredRooms.map((room, index) => {
+                                const details = classroomDetails[room] || {};
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.registeredRoomItem}
+                                        onPress={() => navigateToClassroom(room)}
+                                    >
+                                        {details.img && (
+                                            <Image
+                                                source={{ uri: details.img }}
+                                                style={styles.roomImage}
+                                            />
+                                        )}
+                                        <View style={styles.roomTextContainer}>
+                                            <Text style={styles.infoText}>
+                                                {details.courseName || 'ไม่ระบุชื่อวิชา'}
+                                            </Text>
+                                            <Text style={styles.infoText}>
+                                                รหัสวิชา: {details.courseID || '-'}
+                                            </Text>
+                                            <Text style={styles.infoText}>
+                                                ห้อง: {details.roomName || '-'}
+                                            </Text>
+                                            <Text style={styles.infoText}>
+                                                อาจารย์: {details.owner || '-'}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })
+                        ) : (
+                            <Text style={styles.infoText}>ยังไม่มีห้องเรียนที่ลงทะเบียน</Text>
+                        )}
                     </View>
                 </View>
             </ScrollView>
@@ -234,6 +405,20 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    registeredRoomItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    roomImage: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginRight: 10,
+    },
+    roomTextContainer: {
+        flex: 1,
     },
 });
 
