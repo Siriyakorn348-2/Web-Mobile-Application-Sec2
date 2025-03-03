@@ -56,16 +56,22 @@ const RegisterScreen = () => {
       Toast.show({ type: 'error', text1: 'สมัครสมาชิกล้มเหลว', text2: 'กรุณากรอกอีเมลให้ถูกต้อง' });
       return;
     }
-  
+
+    if (password.length < 6) {
+      setError('รหัสผ่านต้องมีความยาวไม่น้อยกว่า 6 ตัวอักษร');
+      Toast.show({ type: 'error', text1: 'สมัครสมาชิกล้มเหลว', text2: 'รหัสผ่านต้องมีความยาวไม่น้อยกว่า 6 ตัวอักษร' });
+      return;
+    }
+
     setLoading(true);
     setError('');
-  
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
+
       const photoURL = await uploadImageAsync(photo, user.uid);
-  
+
       await setDoc(doc(db, 'users', user.uid), {
         name: name,
         email: user.email,
