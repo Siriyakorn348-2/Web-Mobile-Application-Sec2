@@ -23,21 +23,30 @@ const HomeScreen = () => {
     const [nameInput, setNameInput] = useState('');
     const [showInputFields, setShowInputFields] = useState(false);
     const [registeredRooms, setRegisteredRooms] = useState([]);
-    const [loading, setLoading] = useState(true); // เพิ่ม state สำหรับ loading
+    const [loading, setLoading] = useState(true);
+
+    // ฟังก์ชันแยก roomCode จาก URL
+    const extractRoomCode = (input) => {
+        if (!input) return '';
+        // ถ้าเป็น URL ให้แยกส่วน ID ออกมา (เช่น XsHJAYqUB07ExSaaeGAq จาก https://yourapp.com/courses/XsHJAYqUB07ExSaaeGAq)
+        const match = input.match(/courses\/([^/]+)/);
+        return match ? match[1] : input.trim(); // คืนค่า ID หรือ input เดิมถ้าไม่ใช่ URL
+    };
 
     const fetchClassroomDetails = async (roomCode) => {
         try {
-            const ownerUid = await findClassroomOwner(roomCode);
-            console.log(`Fetching details for room: ${roomCode}, Owner UID: ${ownerUid}`);
+            const cleanedRoomCode = extractRoomCode(roomCode);
+            const ownerUid = await findClassroomOwner(cleanedRoomCode);
+            console.log(`Fetching details for room: ${cleanedRoomCode}, Owner UID: ${ownerUid}`);
             if (ownerUid) {
-                const classroomRef = doc(db, `users/${ownerUid}/classroom`, roomCode);
+                const classroomRef = doc(db, `users/${ownerUid}/classroom`, cleanedRoomCode);
                 const classroomSnap = await getDoc(classroomRef);
                 if (classroomSnap.exists()) {
                     const data = classroomSnap.data();
-                    console.log(`Data for ${roomCode}:`, data);
+                    console.log(`Data for ${cleanedRoomCode}:`, data);
                     setClassroomDetails(prev => ({
                         ...prev,
-                        [roomCode]: {
+                        [cleanedRoomCode]: {
                             courseID: data.courseID,
                             courseName: data.courseName,
                             img: data.img,
@@ -46,7 +55,7 @@ const HomeScreen = () => {
                         }
                     }));
                 } else {
-                    console.log(`No data found for room ${roomCode}`);
+                    console.log(`No data found for room ${cleanedRoomCode}`);
                 }
             }
         } catch (error) {
@@ -66,13 +75,12 @@ const HomeScreen = () => {
                 const userRef = doc(db, 'users', user.uid);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
-                    setUserData(userSnap.data());
-                    console.log('User data:', userSnap.data());
-                } else {
-                    console.log('No user data found');
+                    const data = userSnap.data();
+                    setUserData(data);
+                    console.log('User data:', data);
                 }
             } catch (error) {
-                console.error('Error fetching user data:', error.message);
+                console.error('Error fetching user data:', error);
             }
         };
 
@@ -103,28 +111,57 @@ const HomeScreen = () => {
     }, [user]);
 
     const registerRoomCode = async (code) => {
-        if (!code.trim()) {
-            Alert.alert('ข้อผิดพลาด', 'กรุณากรอกรหัสห้อง');
+        const cleanedRoomCode = extractRoomCode(code);
+        if (!cleanedRoomCode) {
+            Alert.alert('ข้อผิดพลาด', 'รหัสห้องไม่ถูกต้อง');
             return;
         }
         try {
-            const ownerUid = await findClassroomOwner(code);
+            const ownerUid = await findClassroomOwner(cleanedRoomCode);
             if (!ownerUid) {
                 Alert.alert('ไม่พบรหัสห้อง', 'กรุณาตรวจสอบรหัสห้องอีกครั้ง');
                 return;
             }
-            setRoomCode(code);
+            setRoomCode(cleanedRoomCode);
+            setStudentIdInput(userData?.stid || '');
+            setNameInput(userData?.name || '');
             setShowInputFields(true);
         } catch (error) {
             console.error('Register with code error:', error.message);
-            Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถลงทะเบียนได้');
+            Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถตรวจสอบรหัสห้องได้');
         }
     };
 
     const handleBarCodeScanned = async ({ data }) => {
         setScanned(true);
         setScanning(false);
-        await registerRoomCode(data);
+
+        if (!user) {
+            Alert.alert('ข้อผิดพลาด', 'กรุณาลงชื่อเข้าใช้ก่อนสแกน QR Code');
+            return;
+        }
+
+        const scannedRoomCode = extractRoomCode(data);
+        if (!scannedRoomCode) {
+            Alert.alert('ข้อผิดพลาด', 'รหัส QR Code ไม่ถูกต้อง');
+            return;
+        }
+
+        try {
+            const ownerUid = await findClassroomOwner(scannedRoomCode);
+            if (!ownerUid) {
+                Alert.alert('ไม่พบรหัสห้อง', 'รหัส QR Code ไม่ถูกต้อง');
+                return;
+            }
+
+            setRoomCode(scannedRoomCode);
+            setStudentIdInput(userData?.stid || '');
+            setNameInput(userData?.name || '');
+            setShowInputFields(true);
+        } catch (error) {
+            console.error('QR Code scan error:', error.message);
+            Alert.alert('❌ เกิดข้อผิดพลาด', 'ไม่สามารถประมวลผล QR Code ได้');
+        }
     };
 
     const startScanning = async () => {
@@ -143,6 +180,12 @@ const HomeScreen = () => {
             return;
         }
         try {
+            if (registeredRooms.includes(roomCode)) {
+                Alert.alert('แจ้งเตือน', 'คุณลงทะเบียนห้องนี้ไปแล้ว');
+                navigation.navigate('Classroom', { roomCode });
+                return;
+            }
+
             await setDoc(doc(db, `classroom/${roomCode}/students`, user.uid), {
                 stdid: studentIdInput,
                 name: nameInput,
@@ -206,6 +249,7 @@ const HomeScreen = () => {
                         <Text style={styles.cardTitle}>ข้อมูลส่วนตัว</Text>
                     </View>
                     <View style={styles.cardContent}>
+                        <Image source={{ uri: userData?.photo }} style={styles.profileImage} />
                         <Text style={styles.infoText}>รหัสนักศึกษา: {userData?.stid || '-'}</Text>
                         <Text style={styles.infoText}>ชื่อ: {userData?.name || '-'}</Text>
                     </View>
@@ -419,6 +463,12 @@ const styles = StyleSheet.create({
     },
     roomTextContainer: {
         flex: 1,
+    },
+    profileImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        marginBottom: 10,
     },
 });
 
