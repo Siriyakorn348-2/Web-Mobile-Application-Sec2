@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { View, TextInput, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { app } from '../firebase'; 
+import { getApp } from 'firebase/app';
 import { useNavigation } from '@react-navigation/native';
-import Toast from 'react-native-toast-message';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -12,20 +11,14 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigation = useNavigation();
-  const auth = getAuth(app); // ใช้แอปที่ถูกติดตั้งแล้ว
-  const db = getFirestore(app); // ใช้แอปที่ถูกติดตั้งแล้ว
+  const auth = getAuth(getApp());
+  const db = getFirestore(getApp());
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      setError('Email and Password are required!');
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter all fields.' });
-      return;
-    }
-
     setLoading(true);
     setError('');
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password.trim());
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       const userRef = doc(db, 'users', user.uid);
@@ -33,14 +26,11 @@ const LoginScreen = () => {
 
       if (!userDoc.exists()) {
         setError('User data not found. Please contact support.');
-        Toast.show({ type: 'error', text1: 'Error', text2: 'User not found in database.' });
       } else {
-        Toast.show({ type: 'success', text1: 'Login Successful', text2: 'Welcome back!' });
-        navigation.replace('Home');
+        navigation.navigate('Home');
       }
-    } catch (err) {
-      setError(err.message);
-      Toast.show({ type: 'error', text1: 'Login Failed', text2: err.message });
+    } catch (error) {
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -74,18 +64,16 @@ const LoginScreen = () => {
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.signupButton} onPress={() => navigation.navigate('Register')}>
+          <TouchableOpacity style={styles.signupButton} onPress={() => navigation.push('Register')}>
             <Text style={styles.signupText}>Don't have an account? Sign Up</Text>
           </TouchableOpacity>
         </>
       )}
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      <Toast />
     </View>
   );
 };
-
 
 // 🔹 Styles
 const styles = StyleSheet.create({
