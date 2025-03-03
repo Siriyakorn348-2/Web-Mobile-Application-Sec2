@@ -6,7 +6,6 @@ import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase'; // แก้ไขการ import
 import { useNavigation } from '@react-navigation/native';
-import Toast from 'react-native-toast-message';
 
 const RegisterScreen = () => {
     const [name, setName] = useState('');

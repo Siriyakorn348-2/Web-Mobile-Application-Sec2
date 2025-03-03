@@ -160,7 +160,7 @@ const HomePage = () => {
     {/* Content */}
     <Container sx={{ mt: 3, flexGrow: 1, marginTop: 5 }}>
       <Typography variant="h4" sx={{ textAlign: 'center', my: 3, marginTop: 2, color: "#5E35B1" }}>
-        My Courses
+        ห้องเรียนของฉัน
       </Typography>
       <Grid container spacing={3}>
         {courses.length > 0 ? (

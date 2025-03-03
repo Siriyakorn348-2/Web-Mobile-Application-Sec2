@@ -6,6 +6,7 @@ import HomeScreen from "./app/screens/HomeScreen";
 import RegisterScreen from "./app/screens/RegisterScreen";
 import ClassroomScreen from "./app/screens/ClassroomScreen";
 
+
 const Stack = createStackNavigator();
 
 export default function App() {
