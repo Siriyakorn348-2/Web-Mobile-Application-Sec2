@@ -15,6 +15,7 @@ const CheckInPage = () => {
   const [checkInCode, setCheckInCode] = useState(""); 
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
 
+
   // 📌 โหลดข้อมูลเช็คชื่อและรหัสจาก Firestore
   useEffect(() => {
     const fetchCheckInData = async () => {
@@ -193,7 +194,7 @@ const CheckInPage = () => {
               <TableCell>{index + 1}</TableCell>
               <TableCell>{student.stdid}</TableCell>
               <TableCell>{student.name}</TableCell>
-              <TableCell>{student.note || "-"}</TableCell>
+              <TableCell>{student.remark || "-"}</TableCell>
               <TableCell>{student.date}</TableCell>
               <TableCell>
                 <Button color="error" onClick={() => handleDelete(student.id)}>ลบ</Button>

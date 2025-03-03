@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Table, TableBody, TableCell, TableHead, TableRow, Box, Typography, Paper, CircularProgress } from "@mui/material";
-import { db, writeBatch } from "../firebase/firebase";
-import { doc, collection, getDocs, setDoc, query, where, getCountFromServer } from "firebase/firestore";
+import { Button, Table, TableBody, TableCell, TableHead, TableRow, Box, Typography, CircularProgress } from "@mui/material";
+import { db } from "../firebase/firebase";
+import { doc, setDoc, collection, getDocs, getCountFromServer } from "firebase/firestore";  // เพิ่ม setDoc ที่นี่
 import { v4 as uuidv4 } from "uuid"; // ใช้ uuid เพื่อสร้างหมายเลขเช็คชื่อใหม่
 
 const CheckinManagementPage = () => {
   const { cid } = useParams(); // ดึง `cid` จาก URL
+  const { cno } = useParams(); // ดึง `cno` จาก URL
   const navigate = useNavigate(); // สำหรับการนำทาง
   const [students, setStudents] = useState([]); // เก็บข้อมูลนักเรียน
   const [checkinHistory, setCheckinHistory] = useState([]); // เก็บประวัติการเช็คชื่อ
-  const [checkinCode, setCheckinCode] = useState(""); // เก็บรหัสเช็คชื่อ
-  const [isCheckinOpen, setIsCheckinOpen] = useState(false); // สถานะเช็คชื่อ
   const [loading, setLoading] = useState(true); // สถานะการโหลดข้อมูล
 
   // ฟังก์ชันดึงข้อมูลนักเรียน
@@ -35,8 +34,7 @@ const CheckinManagementPage = () => {
         const checkinNo = historyDoc.id;
         // คำนวณจำนวนคนที่เช็คชื่อ
         const scoresRef = collection(db, `classroom/${cid}/checkin/${checkinNo}/scores`);
-        const scoresQuery = query(scoresRef, where("status", "==", 1)); 
-        const scoresSnapshot = await getCountFromServer(scoresQuery);
+        const scoresSnapshot = await getCountFromServer(scoresRef);
         
         const studentCount = scoresSnapshot.data().count;
         historyWithStudentCount.push({
@@ -54,9 +52,9 @@ const CheckinManagementPage = () => {
 
   // ฟังก์ชันสร้างการเช็คชื่อ
   const handleCreateCheckin = async () => {
-    const checkinNo = uuidv4(); // สร้างหมายเลขเช็คชื่อใหม่ (cno)
-    const generatedCode = uuidv4().slice(0, 6).toUpperCase(); // รหัสเช็คชื่อ 6 หลัก
-  
+    const checkinNo = uuidv4();  // สร้างหมายเลขเช็คชื่อใหม่ (cno)
+    const generatedCode = uuidv4().slice(0, 6).toUpperCase();  // รหัสเช็คชื่อ 6 หลัก
+    
     try {
       // สร้างการเช็คชื่อใน Firestore
       await setDoc(doc(db, `classroom/${cid}/checkin/${checkinNo}`), {
@@ -64,24 +62,27 @@ const CheckinManagementPage = () => {
         isOpen: true,
         createdAt: new Date().toISOString(),
       });
-  
-      // เพิ่มข้อมูลการเช็คชื่อใหม่ที่ตำแหน่งแรก
+
+      // เพิ่มการเช็คชื่อใหม่ที่ตำแหน่งแรก
       setCheckinHistory(prevHistory => [
         { id: checkinNo, createdAt: new Date().toISOString(), studentCount: students.length, isOpen: true },
-        ...prevHistory // ข้อมูลเก่าจะถูกเลื่อนลงไป
+        ...prevHistory 
       ]);
-  
+
       alert(`✅ เพิ่มการเช็คชื่อสำเร็จ! รหัสเช็คชื่อ: ${generatedCode}`);
+
+      // นำทางไปยังหน้าเช็คชื่อ พร้อมส่ง cno (หมายเลขเช็คชื่อ) ไปยัง URL
+      navigate(`/classroom/${cid}/checkin/${checkinNo}`);  // ส่งไปยังหน้า CheckInPage
+
     } catch (error) {
       console.error("❌ เกิดข้อผิดพลาดในการสร้างการเช็คชื่อ:", error);
       alert("❌ เกิดข้อผิดพลาดในการเพิ่มการเช็คชื่อ");
     }
   };
-  
 
-  // ฟังก์ชันนำทางไปยังหน้าการเช็คชื่อ
-  const handleGoToCheckInPage = (checkinNo) => {
-    navigate(`/classroom/${cid}/checkin/${checkinNo}`);
+  // ฟังก์ชันนำทางไปหน้าเช็คชื่อ
+  const handleGoToCheckInPage = (cno) => {
+    navigate(`/classroom/${cid}/checkin/${cno}`);
   };
 
   return (
