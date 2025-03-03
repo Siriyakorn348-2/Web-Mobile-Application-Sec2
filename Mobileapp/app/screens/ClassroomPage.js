@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TextInput, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth } from "../firebase/firebaseConfig";
 import { useNavigation } from "@react-navigation/native";
 import moment from "moment";
@@ -16,11 +16,13 @@ const ClassroomPage = ({ route }) => {
   const [stdid, setStdid] = useState("");
   const [name, setName] = useState("");
   const [isCheckInOpen, setIsCheckInOpen] = useState(true);
+  const [message, setMessage] = useState("");
   const navigation = useNavigation();
 
   useEffect(() => {
     const fetchClassroomDetails = async () => {
       try {
+        console.log("🔄 กำลังโหลดข้อมูลห้องเรียน...");
         const classroomRef = doc(db, "classroom", cid);
         const classroomSnap = await getDoc(classroomRef);
 
@@ -28,15 +30,19 @@ const ClassroomPage = ({ route }) => {
           setClassroom(classroomSnap.data());
         }
 
-        // ✅ โหลดสถานะการเช็คชื่อ
+        console.log("🔄 กำลังตรวจสอบสถานะการเช็คชื่อ...");
         const checkinRef = doc(db, `classroom/${cid}/checkin/${cno}`);
         const checkinSnap = await getDoc(checkinRef);
 
         if (checkinSnap.exists()) {
+          console.log("✅ สถานะการเช็คชื่อ:", checkinSnap.data().isOpen);
           setIsCheckInOpen(checkinSnap.data().isOpen);
+        } else {
+          console.log("❌ ไม่พบข้อมูลเช็คชื่อ");
+          setIsCheckInOpen(false);
         }
       } catch (error) {
-        console.error("❌ เกิดข้อผิดพลาดในการโหลดข้อมูลห้องเรียน:", error);
+        console.error("❌ เกิดข้อผิดพลาดในการโหลดข้อมูล:", error);
       } finally {
         setLoading(false);
       }
@@ -45,12 +51,22 @@ const ClassroomPage = ({ route }) => {
     fetchClassroomDetails();
   }, [cid, cno]);
 
+  useEffect(() => {
+    if (!isCheckInOpen) {
+      setMessage("🔴 การเช็คชื่อถูกปิดแล้ว! อาจารย์ได้ปิดการเช็คชื่อสำหรับวิชานี้แล้ว");
+    } else {
+      setMessage(""); // รีเซ็ตข้อความเมื่อเปิดการเช็คชื่อ
+    }
+  }, [isCheckInOpen]);
+
   const handleCheckInPress = () => {
     if (!isCheckInOpen) {
-      Alert.alert("🔴 การเช็คชื่อถูกปิดแล้ว!", "อาจารย์ได้ปิดการเช็คชื่อสำหรับวิชานี้แล้ว");
+      setMessage("🔴 การเช็คชื่อถูกปิดแล้ว! อาจารย์ได้ปิดการเช็คชื่อสำหรับวิชานี้แล้ว");
       return;
     }
+
     setShowCheckIn(true);
+    setMessage("");
   };
 
   const verifyCheckInCode = async () => {
@@ -80,10 +96,9 @@ const ClassroomPage = ({ route }) => {
         return;
       }
 
-      Alert.alert("✅ รหัสถูกต้อง! กรุณากรอกข้อมูลของคุณ");
       setIsCodeCorrect(true);
+      Alert.alert("✅ รหัสถูกต้อง! กรุณากรอกข้อมูลของคุณ");
     } catch (error) {
-      console.error("❌ เกิดข้อผิดพลาดในการตรวจสอบรหัส:", error);
       Alert.alert("❌ ตรวจสอบรหัสไม่สำเร็จ");
     }
   };
@@ -104,14 +119,6 @@ const ClassroomPage = ({ route }) => {
       }
 
       const studentRef = doc(db, `classroom/${cid}/checkin/${cno}/students/${user.uid}`);
-      const studentSnap = await getDoc(studentRef);
-
-      if (studentSnap.exists()) {
-        Alert.alert("✅ คุณได้เช็คชื่อไปแล้ว!");
-        setSaving(false);
-        return;
-      }
-
       const checkinData = {
         stdid,
         name,
@@ -119,13 +126,12 @@ const ClassroomPage = ({ route }) => {
       };
 
       await setDoc(studentRef, checkinData);
-
       Alert.alert("✅ เช็คชื่อสำเร็จ!", "คุณได้เช็คชื่อเรียบร้อยแล้ว");
+
       setShowCheckIn(false);
       setCode("");
       setIsCodeCorrect(false);
     } catch (error) {
-      console.error("❌ เกิดข้อผิดพลาดในการเช็คชื่อ:", error);
       Alert.alert("❌ เช็คชื่อไม่สำเร็จ");
     } finally {
       setSaving(false);
@@ -136,24 +142,21 @@ const ClassroomPage = ({ route }) => {
     return <ActivityIndicator size="large" color="#6a5acd" />;
   }
 
-  if (!classroom) {
-    return <Text style={styles.errorText}>⚠️ ไม่พบข้อมูลห้องเรียน</Text>;
-  }
-
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <TouchableOpacity onPress={() => navigation.replace("ClassroomPage")} style={styles.backButton}>
         <Text style={styles.backText}>⬅️ กลับ</Text>
       </TouchableOpacity>
 
       {classroom?.imageURL && <Image source={{ uri: classroom.imageURL }} style={styles.image} />}
 
-      <Text style={styles.title}>{classroom.courseName}</Text>
-      <Text style={styles.courseID}>📌 รหัสวิชา: {classroom.courseID}</Text>
-      <Text style={styles.roomName}>📍 ห้อง: {classroom.roomName}</Text>
+      <Text style={styles.title}>{classroom?.courseName}</Text>
+      <Text style={styles.courseID}>📌 รหัสวิชา: {classroom?.courseID}</Text>
+      <Text style={styles.roomName}>📍 ห้อง: {classroom?.roomName}</Text>
 
-      {/* 🔹 ปุ่มเช็คชื่อแสดงตลอดเวลา */}
-      <TouchableOpacity onPress={handleCheckInPress} style={styles.checkInButton}>
+      {message !== "" && <Text style={styles.warningText}>{message}</Text>}
+
+      <TouchableOpacity onPress={handleCheckInPress} style={styles.checkInButton} disabled={!isCheckInOpen}>
         <Text style={styles.checkInText}>✅ เช็คชื่อเข้าเรียน</Text>
       </TouchableOpacity>
 
@@ -161,6 +164,7 @@ const ClassroomPage = ({ route }) => {
         <>
           <Text style={styles.label}>🔑 รหัสเข้าเรียน</Text>
           <TextInput style={styles.input} value={code} onChangeText={setCode} secureTextEntry />
+
           <TouchableOpacity onPress={verifyCheckInCode} style={styles.confirmButton}>
             <Text style={styles.confirmText}>📌 ตรวจสอบรหัส</Text>
           </TouchableOpacity>
@@ -178,10 +182,6 @@ const ClassroomPage = ({ route }) => {
               </TouchableOpacity>
             </>
           )}
-
-          <TouchableOpacity onPress={() => setShowCheckIn(false)} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>❌ ยกเลิก</Text>
-          </TouchableOpacity>
         </>
       )}
     </View>
@@ -190,8 +190,15 @@ const ClassroomPage = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff", alignItems: "center" },
+  backButton: { alignSelf: "flex-start", padding: 10, backgroundColor: "#ddd", borderRadius: 5, marginBottom: 10 },
+  backText: { fontSize: 16, color: "#333", fontWeight: "bold" },
+  title: { fontSize: 24, fontWeight: "bold", color: "#333", marginTop: 10 },
+  courseID: { fontSize: 18, color: "#555", marginVertical: 5 },
+  roomName: { fontSize: 18, color: "#555" },
+  image: { width: "100%", height: 200, borderRadius: 10, marginBottom: 15 },
   checkInButton: { backgroundColor: "#4CAF50", padding: 15, borderRadius: 8, width: "100%", alignItems: "center", marginTop: 10 },
   checkInText: { fontSize: 18, color: "#fff", fontWeight: "bold" },
+  warningText: { fontSize: 16, color: "red", fontWeight: "bold", marginTop: 10, textAlign: "center" },
 });
 
 export default ClassroomPage;
