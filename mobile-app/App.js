@@ -8,7 +8,6 @@ import JoinClassScreen from "./app/screens/JoinClassScreen";
 import ClassroomPage from "./app/screens/ClassroomPage";
 
 
-
 const Stack = createStackNavigator();
 
 export default function App() {
