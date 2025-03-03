@@ -1,0 +1,171 @@
+import { useEffect, useState } from "react";
+import { Button, Table, TableBody, TableCell, TableHead, TableRow, Box, Typography, Paper } from "@mui/material";
+import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+import { db } from "../firebase/firebase";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
+
+const CheckInPage = () => {
+  const { cid, cno } = useParams();
+  const [students, setStudents] = useState([]);
+  const [checkInCode, setCheckInCode] = useState(""); // รหัสเช็คชื่อ
+  const [isCheckInOpen, setIsCheckInOpen] = useState(false); // สถานะเช็คชื่อเปิด/ปิด
+  const navigate = useNavigate();
+
+  // 📌 โหลดข้อมูลเช็คชื่อและรหัสจาก Firestore
+  useEffect(() => {
+    const fetchCheckInData = async () => {
+      try {
+        if (!db) {
+          console.error("❌ Firestore ยังไม่ได้เชื่อมต่อ!");
+          return;
+        }
+    
+        // 📌 ดึงข้อมูลเช็คชื่อ
+        const checkinRef = doc(db, `classroom/${cid}/checkin/${cno}`);
+        const checkinSnap = await getDoc(checkinRef);
+    
+        if (checkinSnap.exists()) {
+          setCheckInCode(checkinSnap.data().code);
+          setIsCheckInOpen(checkinSnap.data().isOpen);
+        }
+    
+        // ✅ ใช้ collection() กับ db โดยตรง
+        const studentsRef = collection(db, `classroom/${cid}/checkin/${cno}/students`);
+        const studentsSnap = await getDocs(studentsRef);
+        
+        setStudents(studentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (error) {
+        console.error("❌ โหลดข้อมูลเช็คชื่อไม่สำเร็จ:", error);
+      }
+    };
+    
+    
+
+    fetchCheckInData();
+    const interval = setInterval(fetchCheckInData, 5000); // โหลดใหม่ทุก 5 วินาที
+    return () => clearInterval(interval);
+  }, [cid, cno]);
+
+
+  // 📌 ฟังก์ชันเปิดเช็คชื่อ (สร้าง Code และบันทึกใน Firestore)
+  const handleOpenCheckIn = async () => {
+    try {
+      const generatedCode = uuidv4().slice(0, 6).toUpperCase(); // สร้างรหัสสุ่ม 6 หลัก
+      setCheckInCode(generatedCode);
+      setIsCheckInOpen(true);
+  
+      // 📌 ตรวจสอบก่อนว่ามี Firestore หรือไม่
+      if (!db) {
+        console.error("❌ Firestore ยังไม่ได้เชื่อมต่อ!");
+        return;
+      }
+  
+      // 📌 สร้าง path ที่ถูกต้อง
+      const checkinRef = doc(db, `classroom/${cid}/checkin/${cno}`);
+  
+      // 📌 บันทึกข้อมูลลง Firestore
+      await setDoc(checkinRef, {
+        code: generatedCode,
+        isOpen: true,
+        createdAt: new Date().toISOString(), 
+      });
+  
+      console.log(`✅ เปิดเช็คชื่อสำเร็จ! รหัสที่บันทึก: ${generatedCode}`);
+      alert(`✅ เปิดเช็คชื่อสำเร็จ! รหัส: ${generatedCode}`);
+    } catch (error) {
+      console.error("❌ เปิดเช็คชื่อไม่สำเร็จ:", error);
+      alert("❌ เกิดข้อผิดพลาดในการเปิดเช็คชื่อ!");
+    }
+  };
+  
+
+  // 📌 ฟังก์ชันปิดเช็คชื่อ
+  const handleCloseCheckIn = async () => {
+    try {
+      setIsCheckInOpen(false);
+      setCheckInCode("");
+
+      // อัปเดตสถานะใน Firestore
+      await updateDoc(doc(db, `classroom/${cid}/checkin/${cno}`), {
+        isOpen: false,
+      });
+
+      alert("✅ ปิดเช็คชื่อสำเร็จ!");
+    } catch (error) {
+      console.error("❌ ปิดเช็คชื่อไม่สำเร็จ:", error);
+    }
+  };
+
+  // 📌 ฟังก์ชันลบรายชื่อนักเรียน
+  const handleDelete = async (studentID) => {
+    try {
+      await deleteDoc(doc(db, `classroom/${cid}/checkin/${cno}/students/${studentID}`));
+      setStudents(students.filter((s) => s.id !== studentID));
+    } catch (error) {
+      console.error("❌ ลบนักเรียนไม่สำเร็จ:", error);
+    }
+  };
+
+  return (
+    <Box sx={{ padding: "20px" }}>
+      <Typography variant="h4" gutterBottom>การเช็คชื่อ</Typography>
+
+      {/* 🔹 ปุ่มเปิด/ปิดเช็คชื่อ */}
+      <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
+        <Button variant="contained" color="primary" onClick={handleOpenCheckIn} disabled={isCheckInOpen}>
+          เปิดเช็คชื่อ
+        </Button>
+        <Button variant="contained" color="secondary" onClick={handleCloseCheckIn} disabled={!isCheckInOpen}>
+          ปิดเช็คชื่อ
+        </Button>
+      </Box>
+
+      {/* 🔹 แสดง Code เช็คชื่อ ถ้าเปิดใช้งาน */}
+      {isCheckInOpen && (
+        <Paper sx={{ padding: 3, backgroundColor: "#f0f0f0", textAlign: "center", marginBottom: 2 }}>
+          <Typography variant="h6">🔑 รหัสเช็คชื่อ</Typography>
+          <Typography variant="h3" sx={{ fontWeight: "bold", color: "#d32f2f" }}>{checkInCode}</Typography>
+        </Paper>
+      )}
+
+      {/* 🔹 ปุ่มเสริม */}
+      <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
+        <Button variant="contained" color="success">บันทึกการเช็คชื่อ</Button>
+        <Button variant="outlined">แสดง QR Code วิชา</Button>
+        <Button variant="outlined" onClick={() => navigate(`/classroom/${cid}/checkin/${cno}/qna`)}> ถาม-ตอบ</Button>
+      </Box>
+
+      {/* 🔹 ตารางรายชื่อนักเรียนที่เช็คชื่อแล้ว */}
+      <Table sx={{ marginTop: "20px" }}>
+        <TableHead>
+          <TableRow>
+            <TableCell>ลำดับ</TableCell>
+            <TableCell>รหัส</TableCell>
+            <TableCell>ชื่อ</TableCell>
+            <TableCell>หมายเหตุ</TableCell>
+            <TableCell>วันเวลา</TableCell>
+            <TableCell>ลบ</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {students.map((student, index) => (
+            <TableRow key={student.id}>
+              <TableCell>{index + 1}</TableCell>
+              <TableCell>{student.stdid}</TableCell>
+              <TableCell>{student.name}</TableCell>
+              <TableCell>{student.note || "-"}</TableCell>
+              <TableCell>{student.date}</TableCell>
+              <TableCell>
+                <Button color="error" onClick={() => handleDelete(student.id)}>ลบ</Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+};
+
+export default CheckInPage;
