@@ -190,12 +190,13 @@ const ClassroomPage = ({ route }) => {
     }
   };
 
-  // ฟังก์ชันสำหรับลิงก์ไป StudentQAPage
+  // ฟังก์ชันสำหรับลิงก์ไป StudentQAPage พร้อมคำสั่งเพิ่มเติม
   const handleGoToQAPage = () => {
     if (!cid || !cno) {
       Alert.alert("❌ ข้อมูลห้องเรียนไม่ครบถ้วน");
       return;
     }
+    console.log("Navigating to StudentQAPage with cid:", cid, "cno:", cno);
     navigation.navigate("StudentQAPage", { cid, cno });
   };
 
@@ -245,7 +246,6 @@ const ClassroomPage = ({ route }) => {
         <Text style={styles.buttonText}>เช็คชื่อเข้าเรียน</Text>
       </TouchableOpacity>
 
-      {/* ปุ่มใหม่สำหรับไปหน้า StudentQAPage */}
       <TouchableOpacity
         style={styles.qaButton}
         onPress={handleGoToQAPage}
@@ -409,11 +409,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15, // เพิ่มระยะห่างจากปุ่ม QA
+    marginBottom: 15,
   },
   qaButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF5733', // สีส้มเพื่อแยกจากปุ่มเช็คชื่อ
+    backgroundColor: '#FF5733',
     paddingVertical: 15,
     paddingHorizontal: 25,
     borderRadius: 30,

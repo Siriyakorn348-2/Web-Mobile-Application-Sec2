@@ -8,8 +8,6 @@ import JoinClassScreen from "./app/screens/JoinClassScreen";
 import ClassroomPage from "./app/screens/ClassroomPage";
 import StudentQAPage from "./app/screens/StudentQAPage";
 
-import ClassroomScreen from "./app/screens/ClassroomScreen";
-
 
 
 const Stack = createStackNavigator();
@@ -24,7 +22,6 @@ export default function App() {
         <Stack.Screen name="JoinClassScreen" component={JoinClassScreen} />
         <Stack.Screen name="ClassroomPage" component={ClassroomPage} />
         <Stack.Screen name="StudentQAPage" component={StudentQAPage} />
-        <Stack.Screen name="Classroom" component={ClassroomScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
