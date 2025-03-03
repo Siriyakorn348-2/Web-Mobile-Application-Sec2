@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, ActivityIndicator, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getApp } from 'firebase/app';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '../firebase'; // แก้ไขการ import
 import { useNavigation } from '@react-navigation/native';
 
 const RegisterScreen = () => {
@@ -15,12 +15,8 @@ const RegisterScreen = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigation = useNavigation();
-    const auth = getAuth(getApp());
-    const db = getFirestore(getApp());
-    const storage = getStorage(getApp());
-    const [studentId, setStudentId] = useState(''); // เพิ่ม studentId state
+    const [studentId, setStudentId] = useState('');
 
-    //  ฟังก์ชันเลือกภาพจากเครื่อง
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -34,7 +30,6 @@ const RegisterScreen = () => {
         }
     };
 
-    //  อัปโหลดภาพไปยัง Firebase Storage
     const uploadImageAsync = async (uri, uid) => {
         const response = await fetch(uri);
         const blob = await response.blob();
@@ -43,9 +38,8 @@ const RegisterScreen = () => {
         return await getDownloadURL(storageRef);
     };
 
-    //  ฟังก์ชันลงทะเบียน
     const handleSignUp = async () => {
-        if (!name || !email || !password || !photo || !studentId) { // เพิ่ม studentId ในการตรวจสอบ
+        if (!name || !email || !password || !photo || !studentId) {
             setError('กรุณากรอกข้อมูลให้ครบทุกช่อง');
             Toast.show({ type: 'error', text1: 'สมัครสมาชิกล้มเหลว', text2: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
             return;
@@ -76,11 +70,11 @@ const RegisterScreen = () => {
                 name: name,
                 email: user.email,
                 photo: photoURL,
-                stid: studentId, // เพิ่ม studentId ใน Firestore
+                stid: studentId,
             });
 
             Toast.show({ type: 'success', text1: 'สมัครสมาชิกสำเร็จ', text2: 'ยินดีต้อนรับ!' });
-            navigation.replace('Home'); // เปลี่ยนไปหน้า Home หลังจากสมัครสำเร็จ
+            navigation.replace('Home');
         } catch (error) {
             setError(error.message);
             Toast.show({ type: 'error', text1: 'สมัครสมาชิกล้มเหลว', text2: error.message });
@@ -100,11 +94,10 @@ const RegisterScreen = () => {
                     <Text style={styles.imagePickerText}>เลือกรูปภาพ</Text>
                 )}
             </TouchableOpacity>
-            <TextInput style={styles.input} placeholder="Student ID (มีขีด)" value={studentId} onChangeText={setStudentId}/> {/* เพิ่ม TextInput สำหรับ studentId */}
+            <TextInput style={styles.input} placeholder="Student ID (มีขีด)" value={studentId} onChangeText={setStudentId} />
             <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} />
             <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
             <TextInput style={styles.input} placeholder="Password" value={password} secureTextEntry onChangeText={setPassword} />
-            
 
             {loading ? (
                 <ActivityIndicator size="large" color="#7A5ACF" />
@@ -126,7 +119,6 @@ const RegisterScreen = () => {
     );
 };
 
-//  **Styles**
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#f8f9fa' },
     title: { fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
