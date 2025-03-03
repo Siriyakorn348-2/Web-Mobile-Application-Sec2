@@ -10,10 +10,10 @@ import {
   Dimensions,
   StyleSheet,
   ScrollView,
-  Image
+  Image,
 } from 'react-native';
-import { getAuth, signOut } from 'firebase/auth'; // เพิ่ม signOut
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { getAuth, signOut } from 'firebase/auth';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -50,7 +50,7 @@ const HomeScreen = () => {
     try {
       await signOut(auth);
       Alert.alert('✅ ออกจากระบบสำเร็จ', 'คุณได้ออกจากระบบเรียบร้อยแล้ว');
-      navigation.replace('Login'); // นำทางไปหน้า Login หลังออกจากระบบ
+      navigation.replace('Login');
     } catch (error) {
       console.error('Logout error:', error.message);
       Alert.alert('❌ เกิดข้อผิดพลาด', 'ไม่สามารถออกจากระบบได้ โปรดลองอีกครั้ง');
@@ -251,6 +251,45 @@ const HomeScreen = () => {
     navigation.navigate('ClassroomPage', { cid: roomCode });
   };
 
+  // Updated function to handle room options with delete
+  const handleRoomOptions = (roomCode) => {
+    Alert.alert(
+      'จัดการห้องเรียนนี้',
+      `คุณต้องการลบห้องเรียน ${classroomDetails[roomCode]?.courseName || roomCode} นี้หรือไม่?`,
+      [
+        {
+          text: 'ลบ',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete from classroom/students
+              await deleteDoc(doc(db, `classroom/${roomCode}/students`, user.uid));
+              // Delete from users/classroom
+              await deleteDoc(doc(db, `users/${user.uid}/classroom`, roomCode));
+
+              // Update local state
+              setRegisteredRooms((prev) => prev.filter((room) => room !== roomCode));
+              setClassroomDetails((prev) => {
+                const updatedDetails = { ...prev };
+                delete updatedDetails[roomCode];
+                return updatedDetails;
+              });
+
+              Alert.alert('✅ ลบสำเร็จ', `ห้องเรียน ${roomCode} ถูกลบออกจากรายการแล้ว`);
+            } catch (error) {
+              console.error('Delete room error:', error.message);
+              Alert.alert('❌ เกิดข้อผิดพลาด', 'ไม่สามารถลบห้องเรียนได้ โปรดลองอีกครั้ง');
+            }
+          },
+        },
+        {
+          text: 'ยกเลิก',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
   const findClassroomOwner = async (code) => {
     try {
       const classroomRef = doc(db, `classroom`, code);
@@ -359,12 +398,11 @@ const HomeScreen = () => {
               registeredRooms.map((room, index) => {
                 const details = classroomDetails[room] || {};
                 return (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.classroomCard}
-                    onPress={() => navigateToClassroom(room)}
-                  >
-                    <View style={styles.registeredRoomItem}>
+                  <View key={index} style={styles.classroomCard}>
+                    <TouchableOpacity
+                      style={styles.registeredRoomItem}
+                      onPress={() => navigateToClassroom(room)}
+                    >
                       {details.imageURL && (
                         <Image
                           source={{ uri: details.imageURL }}
@@ -382,8 +420,14 @@ const HomeScreen = () => {
                           ห้อง: {details.roomName || 'ไม่มีห้อง'}
                         </Text>
                       </View>
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.optionsButton}
+                      onPress={() => handleRoomOptions(room)}
+                    >
+                      <MaterialIcons name="more-vert" size={24} color="#666" />
+                    </TouchableOpacity>
+                  </View>
                 );
               })
             ) : (
@@ -488,6 +532,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   classroomCard: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 10,
@@ -497,10 +542,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   registeredRoomItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   roomImage: {
     width: 50,
@@ -520,6 +568,9 @@ const styles = StyleSheet.create({
   logoutButton: {
     padding: 5,
     marginStart: 160,
+  },
+  optionsButton: { // Renamed from deleteButton to optionsButton
+    padding: 5,
   },
 });
 
