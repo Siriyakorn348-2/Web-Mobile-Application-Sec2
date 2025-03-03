@@ -25,7 +25,7 @@ const Sidebar = ({ open, onClose }) => {
   return (
     <Drawer anchor="left" open={open} onClose={onClose}>
       <List sx={{ width: 250 }}>
-        <ListItem button component="a" href="#/home"> {/* ใช้ #/ สำหรับ HashRouter */}
+        <ListItem button component="a" href="#/home"> 
           <ListItemText primary="🏠 Home" />
         </ListItem>
         <ListItem button onClick={handleLogout} sx={{ color: "red" }}>
@@ -72,7 +72,8 @@ function App() {
         <Route path="/classroom/:cid/checkin/:cno/qna" element={<QAPage />} />
         <Route path="/classroom/:cid/students" element={<StudentList />} />
         <Route path="/classroom/:cid/add-checkin" element={<CheckinManagementPage />} /> 
-        <Route path="/classroom/:cid/checkin/:cno/scores" element={<ScoresPage />} /> 
+        <Route path="/classroom/:cid/checkin/:cno/scores" element={<ScoresPage />} />
+         
       </Routes>
     </>
   );
