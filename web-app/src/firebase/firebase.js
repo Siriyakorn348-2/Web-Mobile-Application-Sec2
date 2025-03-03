@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore"; // ✅ เปลี่ยนจาก getDatabase เป็น getFirestore
+import { getFirestore, writeBatch, doc, setDoc,onSnapshot  } from "firebase/firestore"; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyAK7O2L6dWCEMcgMHz2Mt9xxvxcN03a4zI",
@@ -17,4 +17,4 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app); // ✅ ใช้ Firestore แทน Realtime Database
 
-export { auth, db };
+export { auth, db, writeBatch };

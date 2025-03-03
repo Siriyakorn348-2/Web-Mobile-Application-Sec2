@@ -11,6 +11,8 @@ import EditCoursePage from "./components/editCourse";
 import CheckinPage from "./components/CheckInPage";
 import QAPage from "./components/QAPage";
 import StudentList from "./components/StudentList";
+import CheckinManagementPage from "./components/CheckinManagementPage";
+import ScoresPage from "./components/ScoresPage";
 
 
 
@@ -66,11 +68,11 @@ function App() {
         <Route path="/edit-profile" element={<EditProfile />} />
         <Route path="/manage-class/:cid" element={<ClassroomPage />} />
         <Route path="/edit-course/:cid" element={<EditCoursePage />} />
-        <Route path="/classroom/:cid/checkin" element={<CheckinPage />} />
+        <Route path="/classroom/:cid/checkin/:cno" element={<CheckinPage />} />
         <Route path="/classroom/:cid/checkin/:cno/qna" element={<QAPage />} />
         <Route path="/classroom/:cid/students" element={<StudentList />} />
-
-
+        <Route path="/classroom/:cid/add-checkin" element={<CheckinManagementPage />} /> 
+        <Route path="/classroom/:cid/checkin/:cno/scores" element={<ScoresPage />} /> 
       </Routes>
     </>
   );

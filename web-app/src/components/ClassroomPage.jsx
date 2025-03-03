@@ -10,7 +10,7 @@ import { QrCode, ListAlt, CheckCircle, HowToReg, QuestionAnswer } from "@mui/ico
 import QRCode from "react-qr-code";
 
 const ClassroomPage = () => {
-  const { cid } = useParams();
+  const { cid , cno} = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [students, setStudents] = useState([]);
@@ -119,12 +119,12 @@ const ClassroomPage = () => {
         <List sx={{ flexGrow: 1 }}>
           {[
             { text: "Show QR Code", icon: <QrCode />, action: () => navigate(`/classroom/${cid}/qr`) },
-            { text: "Show Student List", icon: <ListAlt />, action: () => navigate(`/classroom/${cid}/students`) },
-            { text: "Add Check-in", icon: <CheckCircle />, action: () => navigate(`/classroom/${cid}/add-checkin`) },
-            { text: "Check-in", icon: <HowToReg />, action: () => navigate(`/classroom/${cid}/checkin`) },
+            { text: "รายชื่อนักศึกษา", icon: <ListAlt />, action: () => navigate(`/classroom/${cid}/students`) },
+            { text: "เพิ่มการเช็คชื่อ", icon: <CheckCircle />, action: () => navigate(`/classroom/${cid}/add-checkin`) },
             { text: "ถามตอบ", icon: <QuestionAnswer />, action: () => navigate(`/classroom/${cid}/qa`) },
-            
+            { text: "คะแนน", icon: <QuestionAnswer />, action: () => navigate(`classroom/${cid}/checkin/${cno}/scores`) },
 
+            
 
           ].map((item, index) => (
             <ListItemButton

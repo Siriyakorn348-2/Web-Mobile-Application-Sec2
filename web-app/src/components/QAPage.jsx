@@ -1,69 +1,127 @@
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getDatabase, ref, update, onValue } from "firebase/database";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button, TextField, Box, Typography, List, ListItem, CircularProgress } from "@mui/material";
+import { db } from "../firebase/firebase";
+import { doc, setDoc, updateDoc, collection, query, where, onSnapshot } from "firebase/firestore";
 
 const QAPage = () => {
   const { cid, cno } = useParams();
-  const db = getDatabase();
-  const [questionNo, setQuestionNo] = useState("");
-  const [questionText, setQuestionText] = useState("");
-  const [answers, setAnswers] = useState([]);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!questionNo) return; // ไม่ดึงข้อมูลถ้า questionNo ว่าง
-    const answersRef = ref(db, `/classroom/${cid}/checkin/${cno}/answers/${questionNo}`);
-    const unsubscribe = onValue(answersRef, (snapshot) => {
-      setAnswers(snapshot.val() ? Object.values(snapshot.val()) : []);
-    });
-    return () => unsubscribe();
-  }, [db, cid, cno, questionNo]);
+  const [questionNo, setQuestionNo] = useState(""); // เก็บหมายเลขคำถาม
+  const [questionText, setQuestionText] = useState(""); // เก็บข้อความคำถาม
+  const [questionShow, setQuestionShow] = useState(false); // สถานะการแสดงคำถาม
+  const [answers, setAnswers] = useState([]); // เก็บคำตอบ
+  const [loading, setLoading] = useState(true); // สถานะการโหลดคำตอบ
 
-  const startQuestion = () => {
-    if (!questionNo.trim() || !questionText.trim()) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
-    }
+  // ฟังก์ชันเริ่มถาม
+ // ฟังก์ชันเริ่มถาม
+const handleStartQuestion = async () => {
+  if (!questionNo || !questionText) {
+    alert("กรุณากรอกหมายเลขคำถามและข้อความคำถาม");
+    return;
+  }
 
-    update(ref(db, `/classroom/${cid}/checkin/${cno}`), {
+  try {
+    // บันทึกข้อมูลคำถาม
+    await setDoc(doc(db, `classroom/${cid}/checkin/${cno}/questions/${questionNo}`), { 
       question_no: questionNo,
       question_text: questionText,
+    });
+
+    // กำหนดให้คำถามแสดง
+    await updateDoc(doc(db, `classroom/${cid}/checkin/${cno}`), { 
       question_show: true,
     });
+
+    setQuestionShow(true);
+    alert("✅ เริ่มถามคำถามแล้ว!");
+  } catch (error) {
+    console.error("❌ เกิดข้อผิดพลาดในการตั้งคำถาม:", error);
+    alert("❌ เกิดข้อผิดพลาดในการตั้งคำถาม");
+  }
+};
+
+
+  // ฟังก์ชันปิดคำถาม
+  const handleCloseQuestion = async () => {
+    try {
+      // ตั้งค่าให้คำถามไม่แสดง
+      await updateDoc(doc(db, `classroom/${cid}/checkin/${cno}`), { 
+        question_show: false,
+      });
+
+      setQuestionShow(false);
+      alert("✅ ปิดคำถามแล้ว!");
+    } catch (error) {
+      console.error("❌ เกิดข้อผิดพลาดในการปิดคำถาม:", error);
+      alert("❌ เกิดข้อผิดพลาดในการปิดคำถาม");
+    }
   };
 
-  const closeQuestion = () => {
-    update(ref(db, `/classroom/${cid}/checkin/${cno}`), {
-      question_show: false,
+  // ดึงคำตอบแบบ Realtime
+  useEffect(() => {
+    const answersRef = collection(db, `classroom/${cid}/checkin/${cno}/answers`);
+    const q = query(answersRef, where("question_no", "==", questionNo));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedAnswers = snapshot.docs.map(doc => doc.data());
+      setAnswers(fetchedAnswers);
+      setLoading(false);
     });
-  };
+
+    // Clean up function when component is unmounted
+    return () => unsubscribe();
+  }, [cid, cno, questionNo]);
 
   return (
-    <div>
-      <h2>ถามตอบ</h2>
-      <input
-        type="text"
-        placeholder="ข้อที่"
-        value={questionNo}
-        onChange={(e) => setQuestionNo(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="ข้อความคำถาม"
-        value={questionText}
-        onChange={(e) => setQuestionText(e.target.value)}
-      />
-      <button onClick={startQuestion}>เริ่มถาม</button>
-      <button onClick={closeQuestion}>ปิดคำถาม</button>
+    <Box sx={{ padding: "75px" }}>
+      <Typography variant="h4" gutterBottom>หน้าจอถาม-ตอบ</Typography>
 
-      <h3>รายการคำตอบ</h3>
-      {answers.length === 0 ? <p>ยังไม่มีคำตอบ</p> : (
-        <ul>
+      <Box sx={{ marginBottom: "20px" }}>
+        <TextField
+          label="หมายเลขคำถาม"
+          value={questionNo}
+          onChange={(e) => setQuestionNo(e.target.value)}
+          fullWidth
+          sx={{ marginBottom: "10px" }}
+        />
+        <TextField
+          label="ข้อความคำถาม"
+          value={questionText}
+          onChange={(e) => setQuestionText(e.target.value)}
+          fullWidth
+          sx={{ marginBottom: "10px" }}
+        />
+      </Box>
+
+      {/* ปุ่มเริ่มถาม และปิดคำถาม */}
+      <Box sx={{ marginBottom: "20px" }}>
+        {!questionShow ? (
+          <Button variant="contained" color="primary" onClick={handleStartQuestion}>
+            เริ่มถาม
+          </Button>
+        ) : (
+          <Button variant="contained" color="secondary" onClick={handleCloseQuestion}>
+            ปิดคำถาม
+          </Button>
+        )}
+      </Box>
+
+      {/* แสดงคำตอบแบบ Realtime */}
+      <Typography variant="h6" gutterBottom>คำตอบ</Typography>
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <List>
           {answers.map((answer, index) => (
-            <li key={index}>{answer}</li>
+            <ListItem key={index}>
+              <Typography variant="body1">{answer.text}</Typography>
+            </ListItem>
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Box>
   );
 };
 

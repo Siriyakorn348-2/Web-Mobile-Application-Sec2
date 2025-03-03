@@ -70,6 +70,8 @@ const StudentList = () => {
       .catch((error) => alert("เกิดข้อผิดพลาด: " + error.message));
   };
 
+
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "70px", fontFamily: "Arial, sans-serif", backgroundColor: "#f9f5ff", minHeight: "100vh" }}>
       <h2 style={{ color: "#6a5acd", marginBottom: "20px" }}>รายชื่อนักศึกษา</h2>
@@ -121,7 +123,10 @@ const StudentList = () => {
             <button onClick={() => setIsPopupOpen(false)} style={{ backgroundColor: "#f44336", color: "white", padding: "12px 25px", border: "none", borderRadius: "5px", cursor: "pointer", fontSize: "16px" }}>ยกเลิก</button>
           </div>
         </div>
+
+        
       )}
+      
     </div>
   );
 };
