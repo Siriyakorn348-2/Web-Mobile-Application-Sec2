@@ -1,7 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAK7O2L6dWCEMcgMHz2Mt9xxvxcN03a4zI",
@@ -14,18 +14,14 @@ const firebaseConfig = {
   measurementId: "G-0BX2B6YTM0"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app); 
+// ตรวจสอบว่า Firebase ถูก initialize หรือยัง
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-// ตั้งค่าให้ Firebase Auth จำ session
-setPersistence(auth, browserLocalPersistence)
-  .then(() => {
-    console.log("🔥 Firebase Auth: จำ session แล้ว!");
-  })
-  .catch((error) => {
-    console.error("⚠️ ตั้งค่า Persistence ล้มเหลว:", error);
-  });
+// กำหนดค่า Auth ให้ใช้ AsyncStorage
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 
-export { auth, db };
-export default app;
+const db = getFirestore(app);
+
+export { app, auth, db };

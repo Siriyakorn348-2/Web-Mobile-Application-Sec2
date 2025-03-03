@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Alert, TouchableOpacity, SafeAreaView, StatusBar, Dimensions } from 'react-native';
+import { View, Text, TextInput, Alert, TouchableOpacity, SafeAreaView, StatusBar, Dimensions, StyleSheet, ScrollView } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -96,52 +96,145 @@ const HomeScreen = () => {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
-            <View style={{ padding: 20 }}>
-                <Text style={{ fontSize: 20, fontWeight: 'bold' }}>ข้อมูลส่วนตัว</Text>
-                <Text>รหัสนักศึกษา: {userData?.stid || '-'}</Text>
-                <Text>ชื่อ: {userData?.name || '-'}</Text>
+            <ScrollView style={styles.scrollView}>
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <MaterialIcons name="person" size={24} color="#3498db" />
+                        <Text style={styles.cardTitle}>ข้อมูลส่วนตัว</Text>
+                    </View>
+                    <View style={styles.cardContent}>
+                        <Text style={styles.infoText}>รหัสนักศึกษา: {userData?.stid || '-'}</Text>
+                        <Text style={styles.infoText}>ชื่อ: {userData?.name || '-'}</Text>
+                    </View>
+                </View>
 
-                <TextInput
-                    style={{ borderWidth: 1, width: '80%', padding: 10, marginVertical: 10 }}
-                    placeholder="กรอกรหัสห้อง"
-                    value={roomCode}
-                    onChangeText={setRoomCode}
-                />
-                <TouchableOpacity
-                    style={{ backgroundColor: 'blue', padding: 10, borderRadius: 5 }}
-                    onPress={handleRegisterWithCode}
-                >
-                    <Text style={{ color: 'white' }}>ลงทะเบียนด้วยรหัสห้อง</Text>
-                </TouchableOpacity>
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <MaterialIcons name="edit" size={24} color="#3498db" />
+                        <Text style={styles.cardTitle}>ลงทะเบียนด้วยรหัสห้อง</Text>
+                    </View>
+                    <View style={styles.cardContent}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="กรอกรหัสห้องเรียน"
+                            value={roomCode}
+                            onChangeText={setRoomCode}
+                        />
+                        <TouchableOpacity style={styles.button} onPress={handleRegisterWithCode}>
+                            <Text style={styles.buttonText}>ลงทะเบียน</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
-                <TouchableOpacity
-                    style={{ marginTop: 20, padding: 10, backgroundColor: 'green', borderRadius: 5 }}
-                    onPress={startScanning}
-                >
-                    <Text style={{ color: 'white' }}>สแกน QR Code</Text>
-                </TouchableOpacity>
-            </View>
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <MaterialIcons name="qr-code-scanner" size={24} color="#3498db" />
+                        <Text style={styles.cardTitle}>สแกน QR Code</Text>
+                    </View>
+                    <View style={styles.cardContent}>
+                        <TouchableOpacity style={styles.button} onPress={startScanning}>
+                            <Text style={styles.buttonText}>เปิดสแกนเนอร์</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </ScrollView>
 
             {scanning && permission?.granted && (
-                <View style={{ flex: 1 }}>
+                <View style={styles.cameraContainer}>
                     <StatusBar barStyle="light-content" backgroundColor="#000000" />
                     <CameraView
-                        style={{ flex: 1 }}
+                        style={styles.camera}
                         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
                         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
                     />
                     <TouchableOpacity
-                        style={{ position: 'absolute', bottom: 20, alignSelf: 'center', backgroundColor: 'red', padding: 10, borderRadius: 5 }}
+                        style={styles.cancelButton}
                         onPress={() => setScanning(false)}
                     >
-                        <Text style={{ color: 'white' }}>ยกเลิก</Text>
+                        <Text style={styles.cancelButtonText}>ยกเลิก</Text>
                     </TouchableOpacity>
                 </View>
             )}
         </SafeAreaView>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#f5f5f5',
+    },
+    scrollView: {
+        flex: 1,
+        padding: 20,
+    },
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 8,
+        padding: 16,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    cardContent: {
+        paddingHorizontal: 8,
+    },
+    infoText: {
+        fontSize: 16,
+        marginBottom: 8,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 4,
+        padding: 10,
+        marginBottom: 12,
+    },
+    button: {
+        backgroundColor: '#3498db',
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    cameraContainer: {
+        flex: 1,
+    },
+    camera: {
+        flex: 1,
+    },
+    cancelButton: {
+        position: 'absolute',
+        bottom: 20,
+        alignSelf: 'center',
+        backgroundColor: 'red',
+        padding: 12,
+        borderRadius: 8,
+    },
+    cancelButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+});
 
 export default HomeScreen;

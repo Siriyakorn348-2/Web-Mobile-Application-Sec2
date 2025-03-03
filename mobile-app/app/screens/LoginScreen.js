@@ -1,36 +1,43 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { getApp } from 'firebase/app';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';  // ใช้ import จาก firebase.js
 import { useNavigation } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigation = useNavigation();
-  const auth = getAuth(getApp());
-  const db = getFirestore(getApp());
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter all fields.' });
+      return;
+    }
+
     setLoading(true);
-    setError('');
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // ✅ Sign in user
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password.trim());
       const user = userCredential.user;
 
+      // ✅ Check user data in Firestore
       const userRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
-        setError('User data not found. Please contact support.');
+        Toast.show({ type: 'error', text1: 'Error', text2: 'User not found in database.' });
       } else {
-        navigation.navigate('Home');
+        Toast.show({ type: 'success', text1: 'Login Successful', text2: 'Welcome back!' });
+        navigation.replace('Home');
       }
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      console.error("Login Error: ", err);
+      Toast.show({ type: 'error', text1: 'Login Failed', text2: err.message || 'Something went wrong.' });
     } finally {
       setLoading(false);
     }
@@ -64,13 +71,13 @@ const LoginScreen = () => {
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.signupButton} onPress={() => navigation.push('Register')}>
+          <TouchableOpacity style={styles.signupButton} onPress={() => navigation.navigate('Register')}>
             <Text style={styles.signupText}>Don't have an account? Sign Up</Text>
           </TouchableOpacity>
         </>
       )}
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      <Toast />
     </View>
   );
 };
@@ -117,11 +124,6 @@ const styles = StyleSheet.create({
     color: '#7A5ACF',
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 10,
   },
 });
 
