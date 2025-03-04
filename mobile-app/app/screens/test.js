@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Dimensions,
+  StyleSheet,
+  ScrollView,
+  Image,
+} from 'react-native';
 import { getAuth, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDoc, collection, getDocs } from 'firebase/firestore';
-import { Camera } from 'expo-camera';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { FontAwesome } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const auth = getAuth();
@@ -12,374 +26,562 @@ const HomeScreen = () => {
   const user = auth.currentUser;
   const navigation = useNavigation();
 
-  const [stdid, setStdid] = useState('');
-  const [name, setName] = useState('');
-  const [hasPermission, setHasPermission] = useState(null);
+  const [classroomDetails, setClassroomDetails] = useState({});
+  const [userData, setUserData] = useState(null);
+  const [roomCode, setRoomCode] = useState('');
   const [scanning, setScanning] = useState(false);
-  const [cameraRef, setCameraRef] = useState(null);
-  const [classrooms, setClassrooms] = useState([]);
+  const [scanned, setScanned] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [studentIdInput, setStudentIdInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [showInputFields, setShowInputFields] = useState(false);
+  const [registeredRooms, setRegisteredRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // ดึงข้อมูลส่วนตัวผู้ใช้จาก Firestore
+  const extractRoomCode = (input) => {
+    if (!input) return '';
+    const match = input.match(/courses\/([^/]+)/);
+    return match ? match[1] : input.trim();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      Alert.alert('✅ ออกจากระบบสำเร็จ', 'คุณได้ออกจากระบบเรียบร้อยแล้ว');
+      navigation.replace('Login');
+    } catch (error) {
+      console.error('Logout error:', error.message);
+      Alert.alert('❌ เกิดข้อผิดพลาด', 'ไม่สามารถออกจากระบบได้ โปรดลองอีกครั้ง');
+    }
+  };
+
+  const fetchClassroomDetails = async (roomCode) => {
+    try {
+      const cleanedRoomCode = extractRoomCode(roomCode);
+      const classroomRef = doc(db, `classroom`, cleanedRoomCode);
+      const classroomSnap = await getDoc(classroomRef);
+
+      if (classroomSnap.exists()) {
+        const data = classroomSnap.data();
+        console.log(`Data for ${cleanedRoomCode}:`, data);
+        setClassroomDetails((prev) => ({
+          ...prev,
+          [cleanedRoomCode]: {
+            cid: cleanedRoomCode,
+            courseID: data.courseID || "ไม่มีรหัส",
+            courseName: data.courseName || "ไม่มีชื่อวิชา",
+            imageURL: data.imageURL || "https://via.placeholder.com/60",
+            roomName: data.roomName || "ไม่มีห้อง",
+          },
+        }));
+      } else {
+        console.log(`No data found for room ${cleanedRoomCode}`);
+      }
+    } catch (error) {
+      console.error('Error fetching classroom details:', error.message);
+    }
+  };
+
   useEffect(() => {
+    if (!user) {
+      console.log('No user logged in');
+      setLoading(false);
+      return;
+    }
+
     const fetchUserData = async () => {
-      if (user) {
+      try {
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           const data = userSnap.data();
-          setStdid(data.stdid || '');
-          setName(data.name || '');
+          setUserData(data);
+          console.log('User data:', data);
         }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
       }
     };
+
+    const fetchRegisteredRooms = async () => {
+      try {
+        const classroomCollection = collection(db, "classroom");
+        const classroomSnapshot = await getDocs(classroomCollection);
+        const userClassrooms = [];
+
+        for (const classroomDoc of classroomSnapshot.docs) {
+          const studentRef = doc(db, `classroom/${classroomDoc.id}/students`, user.uid);
+          const studentSnap = await getDoc(studentRef);
+
+          if (studentSnap.exists()) {
+            const classroomData = classroomDoc.data();
+            userClassrooms.push({
+              cid: classroomDoc.id,
+              courseID: classroomData.courseID || "ไม่มีรหัส",
+              courseName: classroomData.courseName || "ไม่มีชื่อวิชา",
+              imageURL: classroomData.imageURL || "https://via.placeholder.com/60",
+              roomName: classroomData.roomName || "ไม่มีห้อง",
+            });
+          }
+        }
+
+        console.log('Registered rooms:', userClassrooms);
+        setRegisteredRooms(userClassrooms.map(room => room.cid));
+        setClassroomDetails(userClassrooms.reduce((acc, room) => ({
+          ...acc,
+          [room.cid]: room
+        }), {}));
+      } catch (error) {
+        console.error('Error fetching registered rooms:', error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchUserData();
+    fetchRegisteredRooms();
   }, [user]);
 
-  // ฟังก์ชันโหลดห้องเรียนที่ผู้ใช้เข้าร่วม
-  const loadUserClassrooms = async (userId) => {
+  const registerRoomCode = async (code) => {
+    const cleanedRoomCode = extractRoomCode(code);
+    if (!cleanedRoomCode) {
+      Alert.alert('ข้อผิดพลาด', 'รหัสห้องไม่ถูกต้อง');
+      return;
+    }
+
     try {
-      const classroomCollection = collection(db, "classroom");
-      const classroomSnapshot = await getDocs(classroomCollection);
-      const userClassrooms = [];
-
-      for (const classroomDoc of classroomSnapshot.docs) {
-        const studentRef = doc(db, classroom/${classroomDoc.id}/students/${userId});
-        const studentSnap = await getDoc(studentRef);
-
-        if (studentSnap.exists()) {
-          const classroomData = classroomDoc.data();
-          userClassrooms.push({
-            cid: classroomDoc.id,
-            courseID: classroomData.courseID || "ไม่มีรหัส",
-            courseName: classroomData.courseName || "ไม่มีชื่อวิชา",
-            imageURL: classroomData.imageURL || "https://via.placeholder.com/60",
-            roomName: classroomData.roomName || "ไม่มีห้อง",
-          });
-        }
+      const classroomRef = doc(db, `classroom`, cleanedRoomCode);
+      const classroomSnap = await getDoc(classroomRef);
+      if (!classroomSnap.exists()) {
+        Alert.alert('ไม่พบรหัสห้อง', 'กรุณาตรวจสอบรหัสห้องอีกครั้ง');
+        return;
       }
 
-      setClassrooms(userClassrooms);
+      setRoomCode(cleanedRoomCode);
+      setStudentIdInput(userData?.stid || '');
+      setNameInput(userData?.name || '');
+      setShowInputFields(true);
     } catch (error) {
-      console.error("❌ เกิดข้อผิดพลาดในการโหลดห้องเรียน:", error);
+      console.error('Register with code error:', error.message);
+      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถตรวจสอบรหัสห้องได้');
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      loadUserClassrooms(user.uid);
+  const handleBarCodeScanned = async ({ data }) => {
+    setScanned(true);
+    setScanning(false);
+
+    if (!user) {
+      Alert.alert('ข้อผิดพลาด', 'กรุณาลงชื่อเข้าใช้ก่อนสแกน QR Code');
+      return;
     }
-  }, [user]);
 
-  // ขออนุญาตใช้กล้อง
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
+    const scannedRoomCode = extractRoomCode(data);
+    if (!scannedRoomCode) {
+      Alert.alert('ข้อผิดพลาด', 'รหัส QR Code ไม่ถูกต้อง');
+      return;
+    }
 
-  // ฟังก์ชัน logout
-  const handleLogout = async () => {
     try {
-      await signOut(auth);
-      navigation.replace('Login');
+      const classroomRef = doc(db, `classroom`, scannedRoomCode);
+      const classroomSnap = await getDoc(classroomRef);
+      if (!classroomSnap.exists()) {
+        Alert.alert('ไม่พบรหัสห้อง', 'รหัส QR Code ไม่ถูกต้อง');
+        return;
+      }
+
+      setRoomCode(scannedRoomCode);
+      setStudentIdInput(userData?.stid || '');
+      setNameInput(userData?.name || '');
+      setShowInputFields(true);
     } catch (error) {
-      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถออกจากระบบได้');
+      console.error('QR Code scan error:', error.message);
+      Alert.alert('❌ เกิดข้อผิดพลาด', 'ไม่สามารถประมวลผล QR Code ได้');
     }
   };
 
-  const handleClassroomClick = (cid) => {
-    navigation.navigate("ClassroomPage", { cid });
+  const startScanning = async () => {
+    const { granted } = await requestPermission();
+    if (granted) {
+      setScanning(true);
+      setScanned(false);
+    } else {
+      Alert.alert('ไม่ได้รับอนุญาตให้ใช้กล้อง', 'กรุณาอนุญาตให้แอพเข้าถึงกล้องในการตั้งค่า');
+    }
   };
 
-  const renderClassroomItem = ({ item }) => (
-    <TouchableOpacity onPress={() => handleClassroomClick(item.cid)} style={styles.classCard}>
-      <Image source={{ uri: item.imageURL }} style={styles.classroomImage} />
-      <View style={styles.classInfo}>
-        <Text style={styles.className}>{item.courseName}</Text>
-        <Text style={styles.classID}>{item.courseID}</Text>
-        <Text style={styles.roomName}>
-          <FontAwesome name="map-marker" size={14} color="#777" /> {item.roomName}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const confirmRegistration = async () => {
+    if (!roomCode.trim() || !studentIdInput.trim() || !nameInput.trim()) {
+      Alert.alert('⚠️ ข้อผิดพลาด', 'กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    try {
+      if (registeredRooms.includes(roomCode)) {
+        Alert.alert('แจ้งเตือน', 'คุณลงทะเบียนห้องนี้ไปแล้ว');
+        navigation.navigate('ClassroomPage', { cid: roomCode });
+        return;
+      }
+
+      await setDoc(doc(db, `classroom/${roomCode}/students`, user.uid), {
+        stdid: studentIdInput,
+        name: nameInput,
+        status: 2,
+      }, { merge: true });
+
+      await setDoc(doc(db, `users/${user.uid}/classroom`, roomCode), { status: 2 }, { merge: true });
+
+      Alert.alert('✅ เข้าร่วมสำเร็จ', `คุณได้เข้าห้องเรียน ${roomCode} เรียบร้อยแล้ว!`);
+      setShowInputFields(false);
+      setStudentIdInput('');
+      setNameInput('');
+      setRegisteredRooms((prev) => [...prev, roomCode]);
+      await fetchClassroomDetails(roomCode);
+      setRoomCode('');
+      navigation.navigate('ClassroomPage', { cid: roomCode });
+    } catch (error) {
+      console.error('Confirm registration error:', error.message);
+      Alert.alert('❌ เกิดข้อผิดพลาด', 'โปรดลองอีกครั้งในภายหลัง');
+    }
+  };
+
+  const navigateToClassroom = (roomCode) => {
+    navigation.navigate('ClassroomPage', { cid: roomCode });
+  };
+
+  const handleRoomOptions = (roomCode) => {
+    Alert.alert(
+      'จัดการห้องเรียนนี้',
+      `คุณต้องการลบห้องเรียน ${classroomDetails[roomCode]?.courseName || roomCode} นี้หรือไม่?`,
+      [
+        {
+          text: 'ลบ',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, `classroom/${roomCode}/students`, user.uid));
+              await deleteDoc(doc(db, `users/${user.uid}/classroom`, roomCode));
+              setRegisteredRooms((prev) => prev.filter((room) => room !== roomCode));
+              setClassroomDetails((prev) => {
+                const updatedDetails = { ...prev };
+                delete updatedDetails[roomCode];
+                return updatedDetails;
+              });
+              Alert.alert('✅ ลบสำเร็จ', `ห้องเรียน ${roomCode} ถูกลบออกจากรายการแล้ว`);
+            } catch (error) {
+              console.error('Delete room error:', error.message);
+              Alert.alert('❌ เกิดข้อผิดพลาด', 'ไม่สามารถลบห้องเรียนได้ โปรดลองอีกครั้ง');
+            }
+          },
+        },
+        {
+          text: 'ยกเลิก',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  // New function to navigate to Edit Profile screen
+  const handleEditProfile = () => {
+    navigation.navigate('EditProfile', { userData });
+  };
+
+  const findClassroomOwner = async (code) => {
+    try {
+      const classroomRef = doc(db, `classroom`, code);
+      const classroomSnap = await getDoc(classroomRef);
+      if (classroomSnap.exists()) {
+        return user.uid;
+      }
+      console.log(`No classroom found for code: ${code}`);
+      return null;
+    } catch (error) {
+      console.error('Error finding classroom owner:', error.message);
+      return null;
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.infoText}>กำลังโหลดข้อมูล...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      {/* ส่วนหัว */}
-      <View style={styles.profileSection}>
-        <View style={styles.profileCard}>
-          <FontAwesome name="user-circle" size={60} color="#007BFF" style={styles.profileIcon} />
-          <View>
-            <Text style={styles.profileName}>{name || "ไม่ระบุชื่อ"}</Text>
-            <Text style={styles.profileId}>{stdid || "ไม่ระบุรหัสนักศึกษา"}</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <MaterialIcons name="person" size={24} color="#3498db" />
+            <Text style={styles.cardTitle}>ข้อมูลส่วนตัว</Text>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <MaterialIcons name="logout" size={24} color="#d9534f" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.cardContent}>
+            <Image source={{ uri: userData?.photo }} style={styles.profileImage} />
+            <Text style={styles.infoText}>รหัสนักศึกษา: {userData?.stid || '-'}</Text>
+            <Text style={styles.infoText}>ชื่อ: {userData?.name || '-'}</Text>
+            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+              <MaterialIcons name="edit" size={20} color="#fff" />
+              <Text style={styles.buttonText}>แก้ไขข้อมูลส่วนตัว</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </View>
 
-      {/* ห้องเรียน */}
-      <Text style={styles.sectionTitle}>ห้องเรียนของฉัน</Text>
-      {classrooms.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <FontAwesome name="exclamation-circle" size={40} color="#777" />
-          <Text style={styles.emptyText}>คุณยังไม่ได้เข้าร่วมห้องเรียนใดๆ</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <MaterialIcons name="edit" size={24} color="#3498db" />
+            <Text style={styles.cardTitle}>ลงทะเบียนด้วยรหัสห้อง</Text>
+          </View>
+          <View style={styles.cardContent}>
+            <TextInput
+              style={styles.input}
+              placeholder="กรอกรหัสห้องเรียน"
+              value={roomCode}
+              onChangeText={setRoomCode}
+            />
+            <TouchableOpacity style={styles.button} onPress={() => registerRoomCode(roomCode)}>
+              <Text style={styles.buttonText}>ตรวจสอบห้องเรียน</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={classrooms}
-          keyExtractor={(item) => item.cid}
-          renderItem={renderClassroomItem}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.flatListContent}
-        />
-      )}
 
-      {/* ปุ่มเพิ่มวิชา */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => navigation.navigate('JoinClassScreen')}
-      >
-        <FontAwesome name="plus" size={20} color="#fff" />
-        <Text style={styles.addButtonText}>เพิ่มวิชา</Text>
-      </TouchableOpacity>
-
-      {/* ปุ่มสแกน QR */}
-      {hasPermission === false ? (
-        <Text style={styles.permissionText}>ไม่มีสิทธิ์เข้าถึงกล้อง</Text>
-      ) : (
-        <TouchableOpacity
-          style={styles.scanButton}
-          onPress={() => setScanning(true)}
-        >
-          <FontAwesome name="qrcode" size={20} color="#fff" />
-          <Text style={styles.scanButtonText}>สแกน QR Code</Text>
-        </TouchableOpacity>
-      )}
-
-      {scanning && hasPermission && (
-        <View style={styles.cameraContainer}>
-          <Camera
-            style={styles.camera}
-            type={Camera.Constants.Type.back}
-            onBarCodeScanned={({ data }) => {
-              setScanning(false);
-              Alert.alert('สแกนสำเร็จ', รหัสวิชา: ${data}, [
-                { text: 'OK', onPress: () => navigation.navigate("ClassroomPage", { cid: data }) }
-              ]);
-            }}
-            ref={ref => setCameraRef(ref)}
-          >
-            <View style={styles.cameraOverlay}>
-              <Text style={styles.scanningText}>กำลังสแกน...</Text>
+        {showInputFields && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <MaterialIcons name="person" size={24} color="#3498db" />
+              <Text style={styles.cardTitle}>ข้อมูลนักศึกษา</Text>
             </View>
-          </Camera>
+            <View style={styles.cardContent}>
+              <TextInput
+                style={styles.input}
+                placeholder="รหัสนักศึกษา"
+                value={studentIdInput}
+                onChangeText={setStudentIdInput}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="ชื่อ-สกุล"
+                value={nameInput}
+                onChangeText={setNameInput}
+              />
+              <TouchableOpacity style={styles.button} onPress={confirmRegistration}>
+                <Text style={styles.buttonText}>ลงทะเบียนเข้าร่วมห้องเรียน</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <MaterialIcons name="qr-code-scanner" size={24} color="#3498db" />
+            <Text style={styles.cardTitle}>สแกน QR Code</Text>
+          </View>
+          <View style={styles.cardContent}>
+            <TouchableOpacity style={styles.button} onPress={startScanning}>
+              <Text style={styles.buttonText}>เปิดตัวสแกน</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <MaterialIcons name="class" size={24} color="#3498db" />
+            <Text style={styles.cardTitle}>ห้องเรียนที่ลงทะเบียน</Text>
+          </View>
+          <View style={styles.cardContent}>
+            {registeredRooms.length > 0 ? (
+              registeredRooms.map((room, index) => {
+                const details = classroomDetails[room] || {};
+                return (
+                  <View key={index} style={styles.classroomCard}>
+                    <TouchableOpacity
+                      style={styles.registeredRoomItem}
+                      onPress={() => navigateToClassroom(room)}
+                    >
+                      {details.imageURL && (
+                        <Image
+                          source={{ uri: details.imageURL }}
+                          style={styles.roomImage}
+                        />
+                      )}
+                      <View style={styles.roomTextContainer}>
+                        <Text style={styles.infoText}>
+                          {details.courseName || 'ไม่มีชื่อวิชา'}
+                        </Text>
+                        <Text style={styles.infoText}>
+                          รหัสวิชา: {details.courseID || 'ไม่มีรหัส'}
+                        </Text>
+                        <Text style={styles.infoText}>
+                          ห้อง: {details.roomName || 'ไม่มีห้อง'}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.optionsButton}
+                      onPress={() => handleRoomOptions(room)}
+                    >
+                      <MaterialIcons name="more-vert" size={24} color="#666" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={styles.infoText}>ยังไม่มีห้องเรียนที่ลงทะเบียน</Text>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+
+      {scanning && permission?.granted && (
+        <View style={styles.cameraContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#000000" />
+          <CameraView
+            style={styles.camera}
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          />
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setScanning(false)}
+          >
+            <Text style={styles.cancelButtonText}>ยกเลิก</Text>
+          </TouchableOpacity>
         </View>
       )}
-
-      {/* ปุ่ม Logout */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <FontAwesome name="sign-out" size={20} color="#fff" />
-        <Text style={styles.logoutButtonText}>ออกจากระบบ</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#f5f5f5',
+  },
+  scrollView: {
+    flex: 1,
     padding: 20,
   },
-  profileSection: {
-    marginBottom: 20,
-  },
-  profileCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 15,
-    alignItems: 'center',
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 3,
   },
-  profileIcon: {
-    marginRight: 15,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  profileName: {
-    fontSize: 20,
+  cardTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    marginLeft: 8,
   },
-  profileId: {
+  cardContent: {
+    paddingHorizontal: 8,
+  },
+  infoText: {
     fontSize: 16,
-    color: '#777',
+    marginBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 22,
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 12,
+  },
+  button: {
+    backgroundColor: '#3498db',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editButton: {
+    flexDirection: 'row',
+    backgroundColor: '#3498db',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    marginLeft: 5,
   },
-  classCard: {
+  cameraContainer: {
+    flex: 1,
+  },
+  camera: {
+    flex: 1,
+  },
+  cancelButton: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: 'red',
+    padding: 12,
+    borderRadius: 8,
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  classroomCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 8,
+    padding: 10,
     marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3,
+    elevation: 2,
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  classroomImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 15,
-  },
-  classInfo: {
-    flex: 1,
-  },
-  className: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  classID: {
-    fontSize: 14,
-    color: '#555',
-  },
-  roomName: {
-    fontSize: 14,
-    color: '#777',
-    marginTop: 2,
-  },
-  emptyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    flex: 1,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#777',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  flatListContent: {
-    paddingBottom: 20,
-  },
-  addButton: {
+  registeredRoomItem: {
     flexDirection: 'row',
-    backgroundColor: '#007BFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  scanButton: {
-    flexDirection: 'row',
-    backgroundColor: '#28A745',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  scanButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  cameraContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.😎',
-  },
-  camera: {
-    width: 300,
-    height: 300,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  cameraOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  scanningText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    borderRadius: 5,
+  roomImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
   },
-  permissionText: {
-    color: '#D9534F',
-    fontSize: 16,
-    marginTop: 20,
+  roomTextContainer: {
+    flex: 1,
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 10,
   },
   logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#D9534F',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 5,
+    marginStart: 160,
   },
-  logoutButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
+  optionsButton: {
+    padding: 5,
   },
 });
 

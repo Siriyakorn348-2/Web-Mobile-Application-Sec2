@@ -38,14 +38,12 @@ const HomeScreen = () => {
   const [registeredRooms, setRegisteredRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ฟังก์ชันแยก roomCode จาก URL
   const extractRoomCode = (input) => {
     if (!input) return '';
     const match = input.match(/courses\/([^/]+)/);
     return match ? match[1] : input.trim();
   };
 
-  // ฟังก์ชันออกจากระบบ
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -251,7 +249,6 @@ const HomeScreen = () => {
     navigation.navigate('ClassroomPage', { cid: roomCode });
   };
 
-  // Updated function to handle room options with delete
   const handleRoomOptions = (roomCode) => {
     Alert.alert(
       'จัดการห้องเรียนนี้',
@@ -262,19 +259,14 @@ const HomeScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete from classroom/students
               await deleteDoc(doc(db, `classroom/${roomCode}/students`, user.uid));
-              // Delete from users/classroom
               await deleteDoc(doc(db, `users/${user.uid}/classroom`, roomCode));
-
-              // Update local state
               setRegisteredRooms((prev) => prev.filter((room) => room !== roomCode));
               setClassroomDetails((prev) => {
                 const updatedDetails = { ...prev };
                 delete updatedDetails[roomCode];
                 return updatedDetails;
               });
-
               Alert.alert('✅ ลบสำเร็จ', `ห้องเรียน ${roomCode} ถูกลบออกจากรายการแล้ว`);
             } catch (error) {
               console.error('Delete room error:', error.message);
@@ -288,6 +280,11 @@ const HomeScreen = () => {
         },
       ]
     );
+  };
+
+  // New function to navigate to Edit Profile screen
+  const handleEditProfile = () => {
+    navigation.navigate('EditProfile', { userData });
   };
 
   const findClassroomOwner = async (code) => {
@@ -329,6 +326,10 @@ const HomeScreen = () => {
             <Image source={{ uri: userData?.photo }} style={styles.profileImage} />
             <Text style={styles.infoText}>รหัสนักศึกษา: {userData?.stid || '-'}</Text>
             <Text style={styles.infoText}>ชื่อ: {userData?.name || '-'}</Text>
+            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+              <MaterialIcons name="edit" size={20} color="#fff" />
+              <Text style={styles.buttonText}>แก้ไขข้อมูลส่วนตัว</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -383,7 +384,7 @@ const HomeScreen = () => {
           </View>
           <View style={styles.cardContent}>
             <TouchableOpacity style={styles.button} onPress={startScanning}>
-              <Text style={styles.buttonText}>เปิดสแกนเนอร์</Text>
+              <Text style={styles.buttonText}>เปิดตัวสแกน</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -507,10 +508,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  editButton: {
+    flexDirection: 'row',
+    backgroundColor: '#3498db',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
   buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+    marginLeft: 5,
   },
   cameraContainer: {
     flex: 1,
@@ -569,7 +580,7 @@ const styles = StyleSheet.create({
     padding: 5,
     marginStart: 160,
   },
-  optionsButton: { // Renamed from deleteButton to optionsButton
+  optionsButton: {
     padding: 5,
   },
 });

@@ -15,6 +15,7 @@ import { db, auth } from "../firebase";
 import { useNavigation } from "@react-navigation/native";
 import moment from "moment";
 import { FontAwesome } from "@expo/vector-icons";
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
 const ClassroomPage = ({ route }) => {
   const { cid, cno: initialCno } = route?.params || {};
@@ -26,12 +27,15 @@ const ClassroomPage = ({ route }) => {
   const [isCodeCorrect, setIsCodeCorrect] = useState(false);
   const [stdid, setStdid] = useState("");
   const [name, setName] = useState("");
-  const [remark, setRemark] = useState(""); // Remark state
+  const [remark, setRemark] = useState("");
   const [isCheckInOpen, setIsCheckInOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [cno, setCno] = useState(initialCno);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [showRemarkForm, setShowRemarkForm] = useState(false); // Show remark form
+  const [showRemarkForm, setShowRemarkForm] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
   const navigation = useNavigation();
 
   // Fetch latest check-in
@@ -259,6 +263,45 @@ const ClassroomPage = ({ route }) => {
     navigation.navigate("StudentQAPage", { cid, cno });
   };
 
+  const startScanning = async () => {
+    const { granted } = await requestPermission();
+    if (granted) {
+      setScanning(true);
+      setScanned(false);
+    } else {
+      Alert.alert('ไม่ได้รับอนุญาต', 'กรุณาอนุญาตให้แอพเข้าถึงกล้องในการตั้งค่า');
+    }
+  };
+
+  const handleBarCodeScanned = async ({ data }) => {
+    setScanned(true);
+    setScanning(false);
+
+    try {
+      const checkinRef = doc(db, "classroom", cid, "checkin", cno);
+      const checkinSnap = await getDoc(checkinRef);
+      if (!checkinSnap.exists()) {
+        Alert.alert("🔴 ไม่พบข้อมูลการเช็คชื่อ!");
+        return;
+      }
+      
+      const checkinData = checkinSnap.data();
+      const correctCode = String(checkinData.code).toUpperCase();
+      const scannedCode = String(data).toUpperCase();
+
+      if (scannedCode === correctCode) {
+        setCode(scannedCode);
+        setIsCodeCorrect(true);
+        Alert.alert("✅ สแกน QR Code สำเร็จ! รหัสถูกต้อง");
+      } else {
+        Alert.alert("❌ รหัสจาก QR Code ไม่ถูกต้อง!");
+      }
+    } catch (error) {
+      console.error("QR Code scan error:", error);
+      Alert.alert("❌ เกิดข้อผิดพลาดในการสแกน QR Code");
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -289,7 +332,6 @@ const ClassroomPage = ({ route }) => {
             <Text style={styles.subtitle}> {classroom?.roomName || "ไม่มีห้อง"}</Text>
           </View>
 
-          {/* Display Remark */}
           {remark ? (
             <View style={styles.remarkContainer}>
               <Text style={styles.remarkText}>
@@ -323,7 +365,6 @@ const ClassroomPage = ({ route }) => {
           <Text style={styles.buttonText}>ไปที่หน้าตอบคำถาม</Text>
         </TouchableOpacity>
 
-        {/* Show Remark Button After Check-in */}
         {isCheckedIn && (
           <TouchableOpacity
             style={styles.remarkButton}
@@ -334,7 +375,6 @@ const ClassroomPage = ({ route }) => {
           </TouchableOpacity>
         )}
 
-        {/* Check-in Form */}
         {showCheckIn && isCheckInOpen && (
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>กรอกข้อมูลเพื่อเช็คชื่อ</Text>
@@ -348,20 +388,31 @@ const ClassroomPage = ({ route }) => {
                 keyboardType="default"
                 maxLength={6}
                 placeholderTextColor="#999"
+                editable={!isCodeCorrect}
               />
             </View>
             {!isCodeCorrect && (
-              <TouchableOpacity
-                style={[styles.actionButton, saving && styles.disabledButton]}
-                onPress={verifyCheckInCode}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.actionButtonText}>ตรวจสอบรหัส</Text>
-                )}
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[styles.qrButton, saving && styles.disabledButton]}
+                  onPress={startScanning}
+                  disabled={saving}
+                >
+                  <FontAwesome name="qrcode" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>สแกน QR Code</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, saving && styles.disabledButton]}
+                  onPress={verifyCheckInCode}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.actionButtonText}>ตรวจสอบรหัส</Text>
+                  )}
+                </TouchableOpacity>
+              </>
             )}
             {isCodeCorrect && (
               <>
@@ -402,7 +453,6 @@ const ClassroomPage = ({ route }) => {
           </View>
         )}
 
-        {/* Remark Form */}
         {showRemarkForm && (
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>เพิ่ม/แก้ไขหมายเหตุ</Text>
@@ -428,6 +478,22 @@ const ClassroomPage = ({ route }) => {
               ) : (
                 <Text style={styles.actionButtonText}>บันทึกหมายเหตุ</Text>
               )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {scanning && permission?.granted && (
+          <View style={styles.cameraContainer}>
+            <CameraView
+              style={styles.camera}
+              onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            />
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setScanning(false)}
+            >
+              <Text style={styles.cancelButtonText}>ยกเลิก</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -568,6 +634,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 15,
   },
+  qrButton: {
+    flexDirection: "row",
+    backgroundColor: "#17a2b8",
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
   disabledButton: {
     backgroundColor: "#b0bec5",
     shadowOpacity: 0,
@@ -644,6 +720,30 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     letterSpacing: 0.5,
+  },
+  cameraContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'black',
+  },
+  camera: {
+    flex: 1,
+  },
+  cancelButton: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: 'red',
+    padding: 12,
+    borderRadius: 8,
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
