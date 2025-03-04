@@ -157,6 +157,7 @@ const ClassroomPage = ({ route }) => {
     if (!isCheckInOpen) return;
     setShowCheckIn(true);
     setMessage("");
+    setScanned(false); // รีเซ็ตสถานะการสแกนเมื่อเปิดฟอร์มใหม่
   };
 
   const verifyCheckInCode = async () => {
@@ -264,41 +265,65 @@ const ClassroomPage = ({ route }) => {
   };
 
   const startScanning = async () => {
-    const { granted } = await requestPermission();
-    if (granted) {
-      setScanning(true);
-      setScanned(false);
-    } else {
+    if (!permission) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert('ไม่ได้รับอนุญาต', 'กรุณาอนุญาตให้แอพเข้าถึงกล้องในการตั้งค่า');
+        return;
+      }
+    } else if (!permission.granted) {
       Alert.alert('ไม่ได้รับอนุญาต', 'กรุณาอนุญาตให้แอพเข้าถึงกล้องในการตั้งค่า');
+      return;
     }
+    setScanning(true);
+    setScanned(false);
   };
 
   const handleBarCodeScanned = async ({ data }) => {
+    if (scanned) return; // ป้องกันการสแกนซ้ำ
     setScanned(true);
     setScanning(false);
 
     try {
+      if (!cid || !cno) {
+        Alert.alert("❌ ข้อมูลห้องเรียนไม่ครบถ้วน");
+        return;
+      }
+
       const checkinRef = doc(db, "classroom", cid, "checkin", cno);
       const checkinSnap = await getDoc(checkinRef);
       if (!checkinSnap.exists()) {
         Alert.alert("🔴 ไม่พบข้อมูลการเช็คชื่อ!");
         return;
       }
-      
+
       const checkinData = checkinSnap.data();
-      const correctCode = String(checkinData.code).toUpperCase();
+      if (!checkinData.isOpen) {
+        Alert.alert("🔴 การเช็คชื่อถูกปิดแล้ว!");
+        return;
+      }
+
+      const correctCode = String(checkinData.code || "").toUpperCase();
       const scannedCode = String(data).toUpperCase();
+
+      console.log("Scanned Code:", scannedCode, "Expected Code:", correctCode);
+
+      if (!correctCode) {
+        Alert.alert("❌ ไม่พบรหัสเข้าเรียนในระบบ!");
+        return;
+      }
 
       if (scannedCode === correctCode) {
         setCode(scannedCode);
         setIsCodeCorrect(true);
-        Alert.alert("✅ สแกน QR Code สำเร็จ! รหัสถูกต้อง");
+        Alert.alert("✅ สแกน QR Code สำเร็จ", "รหัสถูกต้อง!");
       } else {
-        Alert.alert("❌ รหัสจาก QR Code ไม่ถูกต้อง!");
+        Alert.alert("❌ รหัสไม่ถูกต้อง", "รหัสจาก QR Code ไม่ตรงกับรหัสเข้าเรียน");
+        setCode(""); // รีเซ็ต code หากไม่ถูกต้อง
       }
     } catch (error) {
       console.error("QR Code scan error:", error);
-      Alert.alert("❌ เกิดข้อผิดพลาดในการสแกน QR Code");
+      Alert.alert("❌ เกิดข้อผิดพลาด", "ไม่สามารถประมวลผล QR Code ได้");
     }
   };
 
@@ -396,10 +421,16 @@ const ClassroomPage = ({ route }) => {
                 <TouchableOpacity
                   style={[styles.qrButton, saving && styles.disabledButton]}
                   onPress={startScanning}
-                  disabled={saving}
+                  disabled={saving || scanning}
                 >
-                  <FontAwesome name="qrcode" size={20} color="#fff" />
-                  <Text style={styles.buttonText}>สแกน QR Code</Text>
+                  {scanning ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <FontAwesome name="qrcode" size={20} color="#fff" />
+                      <Text style={styles.buttonText}>สแกน QR Code</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionButton, saving && styles.disabledButton]}
@@ -486,12 +517,15 @@ const ClassroomPage = ({ route }) => {
           <View style={styles.cameraContainer}>
             <CameraView
               style={styles.camera}
-              onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+              onBarcodeScanned={handleBarCodeScanned}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             />
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setScanning(false)}
+              onPress={() => {
+                setScanning(false);
+                setScanned(false);
+              }}
             >
               <Text style={styles.cancelButtonText}>ยกเลิก</Text>
             </TouchableOpacity>
