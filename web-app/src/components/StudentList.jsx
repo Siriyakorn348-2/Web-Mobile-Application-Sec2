@@ -74,7 +74,7 @@ const StudentList = () => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "70px", fontFamily: "Arial, sans-serif", backgroundColor: "#f9f5ff", minHeight: "100vh" }}>
-      <h2 style={{ color: "#6a5acd", marginBottom: "20px" }}>รายชื่อนักศึกษา</h2>
+      <h2 style={{ color: "black", marginBottom: "20px" }}>รายชื่อนักศึกษา</h2>
 
       <button onClick={() => setIsPopupOpen(true)} style={{ marginBottom: "20px", backgroundColor: "#6a5acd", color: "white", padding: "10px", border: "none", borderRadius: "5px", cursor: "pointer", fontSize: "18px" }}>
         เพิ่มนักศึกษา
@@ -114,7 +114,7 @@ const StudentList = () => {
       {isPopupOpen && (
         <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ backgroundColor: "white", padding: "40px", borderRadius: "15px", width: "450px", textAlign: "center", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)" }}>
-            <h2 style={{ marginBottom: "20px", color: "#6a5acd" }}>เพิ่มนักศึกษา</h2>
+            <h2 style={{ marginBottom: "20px", color: "black" }}>เพิ่มนักศึกษา</h2>
             <input type="text" placeholder="รหัส" value={newStudent.id} onChange={(e) => setNewStudent({ ...newStudent, id: e.target.value })} style={{ width: "100%", padding: "12px", marginBottom: "15px", borderRadius: "5px", border: "1px solid #ddd" }} />
             <input type="text" placeholder="ชื่อ" value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })} style={{ width: "100%", padding: "12px", marginBottom: "15px", borderRadius: "5px", border: "1px solid #ddd" }} />
             <input type="text" placeholder="URL รูปภาพ" value={newStudent.image} onChange={(e) => setNewStudent({ ...newStudent, image: e.target.value })} style={{ width: "100%", padding: "12px", marginBottom: "15px", borderRadius: "5px", border: "1px solid #ddd" }} />

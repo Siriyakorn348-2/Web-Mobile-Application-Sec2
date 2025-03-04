@@ -44,7 +44,7 @@ const Navbar = () => {
 
   return (
     <>
-      <AppBar position="fixed" sx={{ bgcolor: "#9575CD", px: 2 }}>
+      <AppBar position="fixed" sx={{ bgcolor: "#5E35B1", px: 2 }}>
         <Toolbar>
           <IconButton edge="start" color="inherit" onClick={() => setOpen(true)}
             sx={{ marginLeft: "auto", "&:hover": { bgcolor: "#5E35B1" } }}>

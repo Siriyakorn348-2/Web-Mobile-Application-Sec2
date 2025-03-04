@@ -102,8 +102,8 @@ const ClassroomPage = () => {
           "& .MuiDrawer-paper": {
             width: 280,
             mt: 8,
-            backgroundColor: "#F3E8FF",
-            borderRight: "2px solid #D8BFD8",
+            backgroundColor: "#CDC1FF",
+            borderRight: "1px solid rgb(227, 227, 227)",
             boxShadow: "2px 0 10px rgba(0, 0, 0, 0.1)",
           },
         }}
@@ -120,22 +120,22 @@ const ClassroomPage = () => {
                 key={index}
                 onClick={item.action}
                 sx={{
-                  color: "#6A0572",
+                  color: "black",
                   fontWeight: "bold",
                   transition: "all 0.3s ease",
                   padding: "15px 20px",
                   fontSize: "1.1rem",
                   "&:hover": {
-                    backgroundColor: "#E6CCFF",
+                    backgroundColor: "#F5EFFF",
                     transform: "scale(1.02)",
                   },
                   "&:active": {
-                    backgroundColor: "#D8BFD8",
+                    backgroundColor: "white",
                     transform: "scale(0.98)",
                   },
                 }}
               >
-                <ListItemIcon sx={{ color: "#6A0572", minWidth: "40px" }}>{item.icon}</ListItemIcon>
+                <ListItemIcon sx={{ color: "black", minWidth: "40px" }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
             ))}
@@ -144,7 +144,7 @@ const ClassroomPage = () => {
       </Drawer>
 
       {course ? (
-        <Card sx={{ bgcolor: "#fff", p: 3, borderRadius: 3, maxWidth: 2000, position: "relative" }}>
+        <Card sx={{ bgcolor: "#fafafa", p: 3, borderRadius: 3, maxWidth: 2000, position: "relative" }}>
           <CardContent>
             <IconButton onClick={handleOpenMenu} sx={{ position: "absolute", top: 10, right: 10 }}>
               <MoreVertIcon />
@@ -155,7 +155,7 @@ const ClassroomPage = () => {
               <MenuItem onClick={handleDelete}>Delete</MenuItem>
             </Menu>
 
-            <Typography variant="h5" color="#5E35B1" textAlign="center">
+            <Typography variant="h4" color="black" textAlign="center" fontWeight="bold">
               {course.courseName}
             </Typography>
 
@@ -167,7 +167,7 @@ const ClassroomPage = () => {
               />
             </Box>
 
-            <Typography variant="body1" textAlign="center" mt={2}>
+            <Typography variant="body1" textAlign="center" mt={2} color="#7E57C2">
               <strong>Room:</strong> {course.roomName}
             </Typography>
 

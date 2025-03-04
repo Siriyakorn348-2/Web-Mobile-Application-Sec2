@@ -34,16 +34,20 @@ const LoginPage = () => {
       <Card sx={{ maxWidth: 900, borderRadius: 4, overflow: "hidden", boxShadow: 6 }}>
         <Grid container>
           
+          {/* Section for Image */}
           <Grid item xs={6} sx={{ background: "#EDE7F6", display: "flex", justifyContent: "center", alignItems: "center", p: 2 }}>
             <img src={img} alt="login" style={{ width: "100%", maxHeight: 500, objectFit: "contain" }} />
           </Grid>
 
-         
-          <Grid item xs={6}>
-            <CardContent sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, p: 4 }}>
+          {/* Section for Login */}
+          <Grid 
+            item xs={6} 
+            sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", p: 4 }}
+          >
+            <CardContent sx={{ width: "100%", maxWidth: 350, textAlign: "center" }}>
               {user ? (
                 <>
-                  <Avatar src={user.photoURL} alt={user.displayName} sx={{ width: 100, height: 100 }} />
+                  <Avatar src={user.photoURL} alt={user.displayName} sx={{ width: 100, height: 100, mb: 2 }} />
                   <Typography variant="h6" color="primary">Welcome, {user.displayName}</Typography>
                   <Button variant="contained" color="secondary" fullWidth onClick={() => navigate('/home')}>
                     ไปที่หน้าหลัก
@@ -51,10 +55,9 @@ const LoginPage = () => {
                 </>
               ) : (
                 <>
-              <Typography 
-              variant="h5" fontWeight="bold" color="primary" sx={{ mt: 10 }}>
-                Login  
-                </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="black" sx={{ mb: 3 }}>
+                    Welcome to Website!
+                  </Typography>
                   <Button
                     variant="contained"
                     startIcon={<GoogleIcon />}
@@ -68,6 +71,7 @@ const LoginPage = () => {
               )}
             </CardContent>
           </Grid>
+          
         </Grid>
       </Card>
     </Box>

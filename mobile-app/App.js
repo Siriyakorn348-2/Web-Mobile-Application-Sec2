@@ -10,7 +10,6 @@ import StudentQAPage from "./app/screens/StudentQAPage";
 import EditProfileScreen from "./app/screens/EditProfileScreen";
 
 
-
 const Stack = createStackNavigator();
 
 export default function App() {

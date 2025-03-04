@@ -32,7 +32,7 @@ const AddCourse = () => {
   const uploadImageToStorage = async (file) => {
     if (!file) return null;
     const uniqueFileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `classroom_images/${file.name}`);
+    const storageRef = ref(storage, `classroom_images/${uniqueFileName}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     return new Promise((resolve, reject) => {
@@ -44,7 +44,7 @@ const AddCourse = () => {
         },
         (error) => {
           console.error("Upload error:", error);
-          alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+          reject(error);
         },
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
@@ -65,28 +65,24 @@ const AddCourse = () => {
       setUploading(true);
       const imageUrl = await uploadImageToStorage(imageFile);
 
-      // สร้างรหัสห้องเรียนอัตโนมัติ
       const courseRef = doc(collection(db, "classroom"));
-      const cid = courseRef.id; // ใช้รหัสนี้เป็น {cid}
+      const cid = courseRef.id;
 
-      // บันทึก UID ของอาจารย์ที่เป็นเจ้าของห้องเรียน
-      await setDoc(doc(db, `classroom/${cid}/owner`), { uid: user.uid });
-
-      // บันทึกข้อมูลของห้องเรียนใน /classroom/{cid}/info/
       const courseData = {
-        code: courseID,       
-        name: courseName,    
-        room: roomName,      
-        photo: imageUrl       
+        courseID: courseID,      
+        courseName: courseName,  
+        roomName: roomName,      
+        imageURL: imageUrl,      
+        ownerUid: user.uid       
       };
 
-      await setDoc(doc(db, `classroom/${cid}/info`), courseData);
+      await setDoc(doc(db, "classroom", cid), courseData);
 
       alert("บันทึกคอร์สสำเร็จ!");
       navigate("/home");
     } catch (error) {
       console.error("Error saving course:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึก");
+      alert("เกิดข้อผิดพลาดในการบันทึก: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -95,14 +91,14 @@ const AddCourse = () => {
   return (
     <Container maxWidth="sm" sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
       <Card sx={{ 
-        bgcolor: "#F3E5F5", 
+        bgcolor: "#fffff", 
         borderRadius: 4, 
         boxShadow: 4,
         padding: 3,
         maxWidth: "100%",
       }}>
         <CardContent>
-          <Typography variant="h4" align="center" color="#6A1B9A" fontWeight="bold">
+          <Typography variant="h4" align="center" color="black" fontWeight="bold">
             เพิ่มห้องเรียน
           </Typography>
 
@@ -113,7 +109,7 @@ const AddCourse = () => {
             margin="normal"
             value={courseID}
             onChange={(e) => setCourseID(e.target.value)}
-            sx={{ bgcolor: "white", borderRadius: 2 }}
+            sx={{ bgcolor: "#F5F5F5", borderRadius: 2 }}
           />
           <TextField
             label="ชื่อวิชา"
@@ -122,7 +118,7 @@ const AddCourse = () => {
             margin="normal"
             value={courseName}
             onChange={(e) => setCourseName(e.target.value)}
-            sx={{ bgcolor: "white", borderRadius: 2 }}
+            sx={{ bgcolor: "#F5F5F5", borderRadius: 2 }}
           />
           <TextField
             label="รหัสห้องเรียน"
@@ -131,7 +127,7 @@ const AddCourse = () => {
             margin="normal"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
-            sx={{ bgcolor: "white", borderRadius: 2 }}
+            sx={{ bgcolor: "#F5F5F5", borderRadius: 2 }}
           />
 
           <input
@@ -143,8 +139,8 @@ const AddCourse = () => {
           />
           <label htmlFor="file-upload">
             <Button variant="contained" component="span" fullWidth sx={{
-              bgcolor: "#AB47BC", 
-              "&:hover": { bgcolor: "#8E24AA" }, 
+              bgcolor: "#5E35B1", 
+              "&:hover": { bgcolor: "#7E57C2" }, 
               mt: 2, 
               borderRadius: 2
             }}>
@@ -166,7 +162,7 @@ const AddCourse = () => {
             onClick={handleSaveCourse}
             disabled={uploading || !imageFile}
             sx={{ 
-              bgcolor: "#7B1FA2", 
+              bgcolor: "#fffff", 
               "&:hover": { bgcolor: "#6A1B9A" },
               borderRadius: 2
             }}
