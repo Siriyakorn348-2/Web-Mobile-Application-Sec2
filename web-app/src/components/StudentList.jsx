@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { getFirestore, doc, getDoc, collection, query, where, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, setDoc, deleteDoc, updateDoc, collection, onSnapshot } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";  // เพิ่มการใช้งาน Firebase Storage
 import { useParams } from "react-router-dom";
 
 const StudentList = () => {
   const { cid } = useParams();  // รับค่า cid จาก URL params
   const [students, setStudents] = useState([]);
-  const [newStudent, setNewStudent] = useState({ stdid: "", name: "", image: "", status: "" });
+  const [newStudent, setNewStudent] = useState({ id: "", name: "", image: "", status: "" });
   const [editStudent, setEditStudent] = useState(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false); // state สำหรับ pop-up
+  const [imageFile, setImageFile] = useState(null); // state สำหรับเก็บไฟล์ภาพที่เลือก
 
   useEffect(() => {
     const db = getFirestore();
@@ -24,22 +26,55 @@ const StudentList = () => {
     return () => unsubscribe();  // หยุดการฟังข้อมูลเมื่อออกจาก component
   }, [cid]);
 
+  // 📌 ฟังก์ชันในการอัปโหลดรูปภาพไปยัง Firebase Storage
+  const uploadImage = async (file) => {
+    const storage = getStorage();
+    const imageRef = ref(storage, `students/${cid}/${file.name}`);
+    try {
+      await uploadBytes(imageRef, file);
+      const downloadURL = await getDownloadURL(imageRef);
+      return downloadURL;  // คืนค่า URL ของรูปภาพที่อัปโหลด
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("เกิดข้อผิดพลาดในการอัปโหลดภาพ");
+      return null;
+    }
+  };
+
+  // 📌 ฟังก์ชันเพิ่มนักศึกษา
   const handleAddStudent = async () => {
     if (!cid) return alert("ไม่พบรหัสห้องเรียน");
-    if (!newStudent.id || !newStudent.name) return alert("กรุณากรอกรหัสและชื่อนักเรียน");
-
+    if (!newStudent.stdid || !newStudent.name || newStudent.status === "") {
+      return alert("กรุณากรอกรหัส, ชื่อ และสถานะนักเรียน");
+    }
+  
+    // 📌 หากมีการเลือกไฟล์ภาพ, อัปโหลดไปยัง Firebase Storage
+    let imageUrl = newStudent.image;
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+      if (!imageUrl) return; // ถ้าอัปโหลดไม่สำเร็จ จะไม่ทำการเพิ่มนักศึกษา
+    }
+  
     const db = getFirestore();
-    const studentRef = doc(db, "classroom", cid, "students", newStudent.id);
-
-    await setDoc(studentRef, newStudent)
+    const studentRef = doc(db, "classroom", cid, "students", newStudent.stdid); // ใช้ stdid เป็น key
+  
+    await setDoc(studentRef, { 
+      stdid: newStudent.stdid,
+      name: newStudent.name,
+      status: newStudent.status, // ใช้เป็น number
+      image: imageUrl || "",
+    })
       .then(() => {
         alert("เพิ่มนักศึกษาเรียบร้อย");
-        setNewStudent({ id: "", name: "", image: "", status: "" });
-        setIsPopupOpen(false); // ปิด pop-up
+        setNewStudent({ stdid: "", name: "", image: "", status: "" }); // รีเซ็ตค่า newStudent หลังการเพิ่ม
+        setIsPopupOpen(false);
+        setImageFile(null);  // รีเซ็ต state ของไฟล์ภาพ
       })
       .catch((error) => alert("เกิดข้อผิดพลาด: " + error.message));
   };
+  
 
+  // 📌 ฟังก์ชันลบข้อมูลนักศึกษา
   const handleDeleteStudent = (key) => {
     if (!window.confirm("คุณต้องการลบนักศึกษาคนนี้ใช่หรือไม่?")) return;
 
@@ -51,34 +86,34 @@ const StudentList = () => {
       .catch((error) => alert("เกิดข้อผิดพลาด: " + error.message));
   };
 
+  // 📌 ฟังก์ชันแก้ไขข้อมูลนักศึกษา
   const handleEditStudent = async () => {
     if (!editStudent || !editStudent.key) return;
 
     const db = getFirestore();
     const studentRef = doc(db, "classroom", cid, "students", editStudent.key);
 
-    await updateDoc(studentRef, {
-      id: editStudent.id,
-      name: editStudent.name,
-      image: editStudent.image,
-      status: editStudent.status,
-    })
+    // 📌 หากมีการเลือกไฟล์ภาพ, อัปโหลดไปยัง Firebase Storage
+    let imageUrl = editStudent.image;
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+      if (!imageUrl) return; // ถ้าอัปโหลดไม่สำเร็จ จะไม่ทำการแก้ไขข้อมูล
+    }
+
+    await updateDoc(studentRef, { ...editStudent, image: imageUrl })
       .then(() => {
         alert("แก้ไขข้อมูลนักศึกษาเรียบร้อย");
         setEditStudent(null);
+        setImageFile(null);  // รีเซ็ต state ของไฟล์ภาพ
       })
       .catch((error) => alert("เกิดข้อผิดพลาด: " + error.message));
   };
-
-
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "70px", fontFamily: "Arial, sans-serif", backgroundColor: "#f9f5ff", minHeight: "100vh" }}>
       <h2 style={{ color: "#6a5acd", marginBottom: "20px" }}>รายชื่อนักศึกษา</h2>
 
-      <button onClick={() => setIsPopupOpen(true)} style={{ marginBottom: "20px", backgroundColor: "#6a5acd", color: "white", padding: "10px", border: "none", borderRadius: "5px", cursor: "pointer", fontSize: "18px" }}>
-        เพิ่มนักศึกษา
-      </button>
+      
 
       <table style={{ width: "80%", margin: "20px auto", borderCollapse: "collapse", backgroundColor: "white", boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)", borderRadius: "10px", textAlign: "center" }}>
         <thead>
@@ -102,7 +137,6 @@ const StudentList = () => {
               </td>
               <td style={{ padding: "12px" }}>{student.status || "-"}</td>
               <td>
-                <button onClick={() => setEditStudent(student)} style={{ marginRight: "5px" }}>✏️</button>
                 <button onClick={() => handleDeleteStudent(student.key)} style={{ marginBottom: "20px", backgroundColor: "#6a5acd", color: "white", padding: "10px", border: "none", borderRadius: "5px", cursor: "pointer", fontSize: "16px" }}>ลบ</button>
               </td>
             </tr>
@@ -117,16 +151,16 @@ const StudentList = () => {
             <h2 style={{ marginBottom: "20px", color: "#6a5acd" }}>เพิ่มนักศึกษา</h2>
             <input type="text" placeholder="รหัส" value={newStudent.id} onChange={(e) => setNewStudent({ ...newStudent, id: e.target.value })} style={{ width: "100%", padding: "12px", marginBottom: "15px", borderRadius: "5px", border: "1px solid #ddd" }} />
             <input type="text" placeholder="ชื่อ" value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })} style={{ width: "100%", padding: "12px", marginBottom: "15px", borderRadius: "5px", border: "1px solid #ddd" }} />
-            <input type="text" placeholder="URL รูปภาพ" value={newStudent.image} onChange={(e) => setNewStudent({ ...newStudent, image: e.target.value })} style={{ width: "100%", padding: "12px", marginBottom: "15px", borderRadius: "5px", border: "1px solid #ddd" }} />
+            
+            {/* เลือกรูปภาพ */}
+            <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} style={{ width: "100%", padding: "12px", marginBottom: "15px", borderRadius: "5px", border: "1px solid #ddd" }} />
+
             <input type="text" placeholder="สถานะ" value={newStudent.status} onChange={(e) => setNewStudent({ ...newStudent, status: e.target.value })} style={{ width: "100%", padding: "12px", marginBottom: "20px", borderRadius: "5px", border: "1px solid #ddd" }} />
             <button onClick={handleAddStudent} style={{ marginRight: "15px", backgroundColor: "#6a5acd", color: "white", padding: "12px 25px", border: "none", borderRadius: "5px", cursor: "pointer", fontSize: "16px" }}>เพิ่ม</button>
             <button onClick={() => setIsPopupOpen(false)} style={{ backgroundColor: "#f44336", color: "white", padding: "12px 25px", border: "none", borderRadius: "5px", cursor: "pointer", fontSize: "16px" }}>ยกเลิก</button>
           </div>
         </div>
-
-        
       )}
-      
     </div>
   );
 };

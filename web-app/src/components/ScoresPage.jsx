@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { Box, Button, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // import useNavigate
 import { db } from "../firebase/firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
 
 const ScoresPage = () => {
   const { cid, cno } = useParams(); 
   const [scores, setScores] = useState([]); 
   const [isSaving, setIsSaving] = useState(false); 
+  const navigate = useNavigate(); // ใช้ useNavigate
 
   // 📌 ดึงข้อมูลจาก Firestore
   useEffect(() => {
     const fetchScores = async () => {
       const scoresRef = collection(db, `classroom/${cid}/checkin/${cno}/scores`);
       const scoresSnap = await getDocs(scoresRef);
-      setScores(scoresSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const fetchedScores = scoresSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(fetchedScores); // ตรวจสอบข้อมูลที่ดึงมา
+      setScores(fetchedScores);
     };
-
+  
     fetchScores();
   }, [cid, cno]);
 
@@ -35,7 +38,7 @@ const ScoresPage = () => {
   const handleSaveChanges = async () => {
     setIsSaving(true);
     try {
-      const batch = writeBatch(db);
+      const batch = writeBatch(db); // ใช้ writeBatch ที่ import มา
       scores.forEach(score => {
         const scoreRef = doc(db, `classroom/${cid}/checkin/${cno}/scores`, score.id);
         batch.update(scoreRef, {
@@ -46,6 +49,9 @@ const ScoresPage = () => {
       });
       await batch.commit();
       alert("✅ บันทึกการแก้ไขข้อมูลสำเร็จ!");
+
+      // 📌 หลังจากบันทึกข้อมูลสำเร็จ, นำทางไปยังหน้า checkin
+      navigate(`/classroom/${cid}/add-checkin`); 
     } catch (error) {
       console.error("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล:", error);
       alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -56,9 +62,9 @@ const ScoresPage = () => {
 
   return (
     <Box sx={{ padding: "70px" }}>
-      <Typography variant="h4" gutterBottom>แสดงคะแนน</Typography>
+      <Typography variant="h4" gutterBottom>แสดงตารางรายชื่อผู้ที่เช็คชื่อ</Typography>
       
-      {/* 🔹 ตารางคะแนน */}
+      {/* 🔹 ตารางแสดงคะแนน */}
       <Table sx={{ marginTop: "20px" }}>
         <TableHead>
           <TableRow>

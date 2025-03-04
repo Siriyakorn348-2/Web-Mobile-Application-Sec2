@@ -4,7 +4,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { 
-  TextField, Button, Container, Typography, Card, CardContent, CardActions 
+  TextField, Button, Container, Typography, Card, CardContent, CardActions, LinearProgress, Box 
 } from '@mui/material';
 
 const AddCourse = () => {
@@ -31,20 +31,21 @@ const AddCourse = () => {
 
   const uploadImageToStorage = async (file) => {
     if (!file) return null;
-    const uniqueFileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `classroom_images/${file.name}`);
+    const uniqueFileName = `${Date.now()}-${file.name}`; // แก้ไข template literal
+    const storageRef = ref(storage, `classroom_images/${uniqueFileName}`); // แก้ไข path
+
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     return new Promise((resolve, reject) => {
       uploadTask.on(
-        "state_changed",
+        'state_changed',
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setProgress(progress);
         },
         (error) => {
           console.error("Upload error:", error);
-          alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+          reject(error);
         },
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
@@ -61,48 +62,68 @@ const AddCourse = () => {
       return;
     }
 
+    if (!courseID || !courseName || !roomName || !imageFile) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วนและเลือกรูปภาพ");
+      return;
+    }
+
     try {
       setUploading(true);
       const imageUrl = await uploadImageToStorage(imageFile);
 
-      // สร้างรหัสห้องเรียนอัตโนมัติ
       const courseRef = doc(collection(db, "classroom"));
-      const cid = courseRef.id; // ใช้รหัสนี้เป็น {cid}
+      const cid = courseRef.id;
 
-      // บันทึก UID ของอาจารย์ที่เป็นเจ้าของห้องเรียน
-      await setDoc(doc(db, `classroom/${cid}/owner`), { uid: user.uid });
-
-      // บันทึกข้อมูลของห้องเรียนใน /classroom/{cid}/info/
       const courseData = {
-        code: courseID,       
-        name: courseName,    
-        room: roomName,      
-        photo: imageUrl       
+        courseID,
+        courseName,
+        roomName,
+        imageURL: imageUrl,
+        owner: user.uid, 
+        id: cid 
       };
 
-      await setDoc(doc(db, `classroom/${cid}/info`), courseData);
+      await setDoc(courseRef, courseData);
 
       alert("บันทึกคอร์สสำเร็จ!");
       navigate("/home");
     } catch (error) {
       console.error("Error saving course:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึก");
+      alert("เกิดข้อผิดพลาดในการบันทึก: " + error.message);
     } finally {
       setUploading(false);
+      setProgress(0); // รีเซ็ต progress หลังอัปโหลดเสร็จ
     }
   };
 
   return (
-    <Container maxWidth="sm" sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <Card sx={{ 
-        bgcolor: "#F3E5F5", 
-        borderRadius: 4, 
-        boxShadow: 4,
-        padding: 3,
-        maxWidth: "100%",
-      }}>
+    <Container 
+      maxWidth="sm" 
+      sx={{ 
+        minHeight: "100vh", 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        bgcolor: "#F4F4F9" 
+      }}
+    >
+      <Card 
+        sx={{ 
+          bgcolor: "#F3E5F5", 
+          borderRadius: 4, 
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.1)",
+          padding: 3,
+          maxWidth: "100%",
+        }}
+      >
         <CardContent>
-          <Typography variant="h4" align="center" color="#6A1B9A" fontWeight="bold">
+          <Typography 
+            variant="h4" 
+            align="center" 
+            color="#6A1B9A" 
+            fontWeight="bold" 
+            gutterBottom
+          >
             เพิ่มห้องเรียน
           </Typography>
 
@@ -142,20 +163,43 @@ const AddCourse = () => {
             style={{ display: "none" }}
           />
           <label htmlFor="file-upload">
-            <Button variant="contained" component="span" fullWidth sx={{
-              bgcolor: "#AB47BC", 
-              "&:hover": { bgcolor: "#8E24AA" }, 
-              mt: 2, 
-              borderRadius: 2
-            }}>
+            <Button 
+              variant="contained" 
+              component="span" 
+              fullWidth 
+              sx={{
+                bgcolor: "#AB47BC", 
+                "&:hover": { bgcolor: "#8E24AA" }, 
+                mt: 2, 
+                borderRadius: 2,
+                py: 1.5,
+              }}
+            >
               เลือกรูปภาพ
             </Button>
           </label>
 
           {imagePreview && (
-            <div style={{ textAlign: "center", marginTop: "20px" }}>
-              <img src={imagePreview} alt="Preview" style={{ maxWidth: "100%", borderRadius: 8, boxShadow: "0 3px 6px rgba(0,0,0,0.2)" }} />
-            </div>
+            <Box sx={{ textAlign: "center", mt: 3 }}>
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                style={{ 
+                  maxWidth: "100%", 
+                  borderRadius: 8, 
+                  boxShadow: "0 3px 6px rgba(0,0,0,0.2)" 
+                }} 
+              />
+            </Box>
+          )}
+
+          {uploading && (
+            <Box sx={{ width: '100%', mt: 2 }}>
+              <LinearProgress variant="determinate" value={progress} />
+              <Typography variant="body2" align="center" sx={{ mt: 1 }}>
+                อัปโหลด: {Math.round(progress)}%
+              </Typography>
+            </Box>
           )}
         </CardContent>
 
@@ -164,11 +208,13 @@ const AddCourse = () => {
             variant="contained"
             fullWidth
             onClick={handleSaveCourse}
-            disabled={uploading || !imageFile}
+            disabled={uploading || !imageFile || !courseID || !courseName || !roomName}
             sx={{ 
               bgcolor: "#7B1FA2", 
               "&:hover": { bgcolor: "#6A1B9A" },
-              borderRadius: 2
+              borderRadius: 2,
+              py: 1.5,
+              fontSize: "1.1rem",
             }}
           >
             {uploading ? 'กำลังอัปโหลด...' : 'บันทึกข้อมูล'}

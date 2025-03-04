@@ -4,17 +4,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, writeBatch } from "firebase/firestore";
+import QRCode from "react-qr-code";
 
 const CheckInPage = () => {
   const { cid, cno } = useParams();
-  console.log("CID:", cid);
-  console.log("CNO:", cno); 
-
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [checkInCode, setCheckInCode] = useState(""); 
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
-
 
   // 📌 โหลดข้อมูลเช็คชื่อและรหัสจาก Firestore
   useEffect(() => {
@@ -25,7 +22,6 @@ const CheckInPage = () => {
           return;
         }
 
-        // 📌 ดึงข้อมูลเช็คชื่อ
         const checkinRef = doc(db, `classroom/${cid}/checkin/${cno}`);
         const checkinSnap = await getDoc(checkinRef);
 
@@ -34,7 +30,6 @@ const CheckInPage = () => {
           setIsCheckInOpen(checkinSnap.data().isOpen);
         }
 
-        // ✅ ใช้ collection() กับ db โดยตรง
         const studentsRef = collection(db, `classroom/${cid}/checkin/${cno}/students`);
         const studentsSnap = await getDocs(studentsRef);
         
@@ -56,16 +51,12 @@ const CheckInPage = () => {
       setCheckInCode(generatedCode);
       setIsCheckInOpen(true);
 
-      // 📌 ตรวจสอบก่อนว่ามี Firestore หรือไม่
       if (!db) {
         console.error("❌ Firestore ยังไม่ได้เชื่อมต่อ!");
         return;
       }
 
-      // 📌 สร้าง path ที่ถูกต้อง
       const checkinRef = doc(db, `classroom/${cid}/checkin/${cno}`);
-
-      // 📌 บันทึกข้อมูลลง Firestore
       await setDoc(checkinRef, {
         code: generatedCode,
         isOpen: true,
@@ -86,7 +77,6 @@ const CheckInPage = () => {
       setIsCheckInOpen(false);
       setCheckInCode("");
 
-      // อัปเดตสถานะใน Firestore
       await updateDoc(doc(db, `classroom/${cid}/checkin/${cno}`), {
         isOpen: false,
       });
@@ -116,9 +106,8 @@ const CheckInPage = () => {
       const batch = writeBatch(db); // เริ่มต้น batch
   
       studentsSnap.forEach((docSnapshot) => {
-        const studentData = docSnapshot.data(); // ดึงข้อมูลนักเรียน
+        const studentData = docSnapshot.data();
   
-        // ตรวจสอบให้แน่ใจว่า doc() ใช้การอ้างอิงเอกสารที่ถูกต้อง
         const studentDocRef = doc(db, `classroom/${cid}/checkin/${cno}/scores`, docSnapshot.id);
         batch.set(studentDocRef, {
           ...studentData,
@@ -133,9 +122,15 @@ const CheckInPage = () => {
       alert(`❌ บันทึกการเช็คชื่อไม่สำเร็จ: ${error.message}`);
     }
   };
-  
-  
 
+  // 📌 ฟังก์ชันแสดง QR Code
+  const handleShowQRCode = () => {
+    if (!checkInCode) {
+      alert("กรุณาเปิดเช็คชื่อก่อน");
+      return;
+    }
+    return <QRCode value={checkInCode} size={256} />;
+  };
 
   const handleGoBack = () => {
     navigate(-1); // กลับไปหน้าก่อน
@@ -144,8 +139,6 @@ const CheckInPage = () => {
   return (
     <Box sx={{ padding: "70px" }}>
       <Typography variant="h4" gutterBottom>การเช็คชื่อ</Typography>
-
-    
 
       {/* 🔹 ปุ่มเปิด/ปิดเช็คชื่อ */}
       <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
@@ -165,16 +158,17 @@ const CheckInPage = () => {
         </Paper>
       )}
 
-      {/* 🔹 ปุ่มบันทึกการเช็คชื่อ */}
-      <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
-        <Button variant="contained" color="success" onClick={handleSaveCheckIn}>
-          บันทึกการเช็คชื่อ
-        </Button>
-        <Button variant="outlined">แสดง QR Code วิชา</Button>
-        <Button variant="outlined" onClick={() => navigate(`/classroom/${cid}/checkin/${cno}/qna`)}> ถาม-ตอบ</Button>
-        <Button variant="outlined" onClick={() => navigate(`/classroom/${cid}/checkin/${cno}/scores`)}> คะแนน</Button>
+      {/* 🔹 ปุ่มแสดง QR Code */}
+      <Button variant="outlined" onClick={handleShowQRCode} sx={{ marginBottom: 2 }}>
+        แสดง QR Code เช็คชื่อ
+      </Button>
 
-      </Box>
+      {/* 🔹 แสดง QR Code */}
+      {checkInCode && (
+        <Paper sx={{ padding: 3, backgroundColor: "#f0f0f0", textAlign: "center" }}>
+          <QRCode value={checkInCode} size={256} />
+        </Paper>
+      )}
 
       {/* 🔹 ตารางรายชื่อนักเรียนที่เช็คชื่อแล้ว */}
       <Table sx={{ marginTop: "20px" }}>
@@ -203,8 +197,9 @@ const CheckInPage = () => {
           ))}
         </TableBody>
       </Table>
-        {/* 🔹 ปุ่มกลับ */}
-        <Button variant="contained" color="secondary" onClick={handleGoBack} sx={{ marginBottom: "20px",marginTop:"20px" }}>
+
+      {/* 🔹 ปุ่มกลับ */}
+      <Button variant="contained" color="secondary" onClick={handleGoBack} sx={{ marginBottom: "20px", marginTop: "20px" }}>
         กลับ
       </Button>
     </Box>

@@ -114,7 +114,6 @@ const ClassroomPage = () => {
               { text: "Show QR Code", icon: <QrCode />, action: toggleQR },
               { text: "รายชื่อนักศึกษา", icon: <ListAlt />, action: () => navigate(`/classroom/${cid}/students`) },
               { text: "เพิ่มการเช็คชื่อ", icon: <CheckCircle />, action: () => navigate(`/classroom/${cid}/add-checkin`) },
-              { text: "ถามตอบ", icon: <QuestionAnswer />, action: () => navigate(`/classroom/${cid}/qa`) },
             ].map((item, index) => (
               <ListItemButton
                 key={index}
