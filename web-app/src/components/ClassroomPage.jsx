@@ -165,9 +165,12 @@ const ClassroomPage = () => {
                 style={{ width: "100%", borderRadius: "10px" }}
               />
             </Box>
+            <Typography variant="body1" textAlign="center" mt={2} color="#7E57C2">
+              <strong>รหัสวิชา :</strong> {course.courseID}
+            </Typography>
 
             <Typography variant="body1" textAlign="center" mt={2} color="#7E57C2">
-              <strong>Room:</strong> {course.roomName}
+              <strong>ห้อง :</strong> {course.roomName}
             </Typography>
 
             {showQR && (

@@ -43,7 +43,7 @@ const HomePage = () => {
   
       const coursesData = querySnapshot.docs
         .map(doc => ({ ...doc.data(), courseID: doc.id }))
-        .filter(course => course.ownerUid === user.uid); 
+        .filter(course => course.owner === user.uid); 
   
       console.log("Courses after filtering:", coursesData);
   
@@ -171,8 +171,9 @@ const HomePage = () => {
                   <Typography variant="h6" gutterBottom sx={{ color: "black", fontWeight: "bold" }}>
                     {course.courseName}
                   </Typography>
+                 
                   <Typography variant="body2" color="textSecondary">
-                    Room: {course.roomName}
+                    ห้อง : {course.roomName}
                   </Typography>
                   <Button
                     variant="contained"

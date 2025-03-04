@@ -12,6 +12,7 @@ const CheckInPage = () => {
   const [students, setStudents] = useState([]);
   const [checkInCode, setCheckInCode] = useState(""); 
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false); // เพิ่ม state ควบคุมการแสดง QR Code
 
   // 📌 โหลดข้อมูลเช็คชื่อและรหัสจาก Firestore
   useEffect(() => {
@@ -129,7 +130,7 @@ const CheckInPage = () => {
       alert("กรุณาเปิดเช็คชื่อก่อน");
       return;
     }
-    return <QRCode value={checkInCode} size={256} />;
+    setShowQRCode(!showQRCode); // Toggle การแสดง QR Code
   };
 
   const handleGoBack = () => {
@@ -159,16 +160,29 @@ const CheckInPage = () => {
       )}
 
       {/* 🔹 ปุ่มแสดง QR Code */}
-      <Button variant="outlined" onClick={handleShowQRCode} sx={{ marginBottom: 2 }}>
-        แสดง QR Code เช็คชื่อ
+      <Button 
+        variant="outlined" 
+        onClick={handleShowQRCode} 
+        sx={{ marginBottom: 2 }}
+      >
+        {showQRCode ? "ซ่อน QR Code เช็คชื่อ" : "แสดง QR Code เช็คชื่อ"}
       </Button>
 
       {/* 🔹 แสดง QR Code */}
-      {checkInCode && (
-        <Paper sx={{ padding: 3, backgroundColor: "#f0f0f0", textAlign: "center" }}>
+      {showQRCode && checkInCode && (
+        <Paper sx={{ padding: 3, backgroundColor: "#f0f0f0", textAlign: "center", marginBottom: 2 }}>
           <QRCode value={checkInCode} size={256} />
         </Paper>
       )}
+
+      {/* 🔹 ปุ่มบันทึกการเช็คชื่อและอื่น ๆ */}
+      <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
+        <Button variant="contained" color="success" onClick={handleSaveCheckIn}>
+          บันทึกการเช็คชื่อ
+        </Button>
+        <Button variant="outlined" onClick={() => navigate(`/classroom/${cid}/checkin/${cno}/qna`)}>ถาม-ตอบ</Button>
+        <Button variant="outlined" onClick={() => navigate(`/classroom/${cid}/checkin/${cno}/scores`)}>คะแนน</Button>
+      </Box>
 
       {/* 🔹 ตารางรายชื่อนักเรียนที่เช็คชื่อแล้ว */}
       <Table sx={{ marginTop: "20px" }}>
