@@ -29,10 +29,12 @@ const AddCourse = () => {
     }
   };
 
+  // 📤 ฟังก์ชันอัปโหลดภาพไปยัง Firebase Storage
   const uploadImageToStorage = async (file) => {
     if (!file) return null;
-    const uniqueFileName = `${Date.now()}-${file.name}`; // แก้ไข template literal
-    const storageRef = ref(storage, `classroom_images/${uniqueFileName}`); // แก้ไข path
+
+    const uniqueFileName = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `classroom_images/${uniqueFileName}`);
 
     const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -41,15 +43,15 @@ const AddCourse = () => {
         'state_changed',
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(progress);
+          setProgress(progress); // อัปเดตค่าความคืบหน้า
         },
         (error) => {
           console.error("Upload error:", error);
           reject(error);
         },
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref); // ได้ URL ของภาพที่อัปโหลด
+          resolve(downloadURL); // ส่งคืน URL
         }
       );
     });
@@ -69,8 +71,11 @@ const AddCourse = () => {
 
     try {
       setUploading(true);
+
+      // อัปโหลดภาพไปยัง Firebase Storage และรับ URL ของภาพ
       const imageUrl = await uploadImageToStorage(imageFile);
 
+      // สร้าง document ใหม่ใน Firestore
       const courseRef = doc(collection(db, "classroom"));
       const cid = courseRef.id;
 
@@ -79,20 +84,21 @@ const AddCourse = () => {
         courseName,
         roomName,
         imageURL: imageUrl,
-        owner: user.uid, 
-        id: cid 
+        owner: user.uid,
+        id: cid,
       };
 
+      // บันทึกข้อมูลคอร์สไปยัง Firestore
       await setDoc(courseRef, courseData);
 
       alert("บันทึกคอร์สสำเร็จ!");
-      navigate("/home");
+      navigate("/home"); // นำทางกลับไปหน้าหลัก
     } catch (error) {
       console.error("Error saving course:", error);
       alert("เกิดข้อผิดพลาดในการบันทึก: " + error.message);
     } finally {
       setUploading(false);
-      setProgress(0); // รีเซ็ต progress หลังอัปโหลดเสร็จ
+      setProgress(0); // รีเซ็ต progress หลังจากอัปโหลดเสร็จ
     }
   };
 
@@ -107,23 +113,9 @@ const AddCourse = () => {
         bgcolor: "#F4F4F9" 
       }}
     >
-      <Card 
-        sx={{ 
-          bgcolor: "#F3E5F5", 
-          borderRadius: 4, 
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.1)",
-          padding: 3,
-          maxWidth: "100%",
-        }}
-      >
+      <Card sx={{ width: "100%", padding: 2, borderRadius: 3, boxShadow: 3 }}>
         <CardContent>
-          <Typography 
-            variant="h4" 
-            align="center" 
-            color="#6A1B9A" 
-            fontWeight="bold" 
-            gutterBottom
-          >
+          <Typography variant="h4" align="center" color="black" fontWeight="bold" gutterBottom>
             เพิ่มห้องเรียน
           </Typography>
 
@@ -134,7 +126,7 @@ const AddCourse = () => {
             margin="normal"
             value={courseID}
             onChange={(e) => setCourseID(e.target.value)}
-            sx={{ bgcolor: "white", borderRadius: 2 }}
+            sx={{ bgcolor: "#F5F5F5", borderRadius: 2 }}
           />
           <TextField
             label="ชื่อวิชา"
@@ -143,7 +135,7 @@ const AddCourse = () => {
             margin="normal"
             value={courseName}
             onChange={(e) => setCourseName(e.target.value)}
-            sx={{ bgcolor: "white", borderRadius: 2 }}
+            sx={{ bgcolor: "#F5F5F5", borderRadius: 2 }}
           />
           <TextField
             label="รหัสห้องเรียน"
@@ -152,7 +144,7 @@ const AddCourse = () => {
             margin="normal"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
-            sx={{ bgcolor: "white", borderRadius: 2 }}
+            sx={{ bgcolor: "#F5F5F5", borderRadius: 2 }}
           />
 
           <input
@@ -210,8 +202,8 @@ const AddCourse = () => {
             onClick={handleSaveCourse}
             disabled={uploading || !imageFile || !courseID || !courseName || !roomName}
             sx={{ 
-              bgcolor: "#7B1FA2", 
-              "&:hover": { bgcolor: "#6A1B9A" },
+              bgcolor: "#6A1B9A", 
+              "&:hover": { bgcolor: "#AB47BC" },
               borderRadius: 2,
               py: 1.5,
               fontSize: "1.1rem",

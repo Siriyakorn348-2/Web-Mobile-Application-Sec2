@@ -106,13 +106,13 @@ const CheckinManagementPage = () => {
           {/* แสดงประวัติการเช็คชื่อ */}
           <Typography variant="h6" gutterBottom>ประวัติการเช็คชื่อ</Typography>
           <Table sx={{ marginBottom: "20px" }}>
-            <TableHead>
+            <TableHead sx={{ backgroundColor: "#5E35B1"}}>
               <TableRow>
-                <TableCell>ลำดับ</TableCell>
-                <TableCell>วัน-เวลา</TableCell>
-                <TableCell>จำนวนคนเข้าเรียน</TableCell>
-                <TableCell>สถานะ</TableCell>
-                <TableCell>จัดการ</TableCell>
+                <TableCell sx={{ color: "#ffffff"}}>ลำดับ</TableCell>
+                <TableCell sx={{ color: "#ffffff"}}>วัน-เวลา</TableCell>
+                <TableCell sx={{ color: "#ffffff"}}>จำนวนคนเข้าเรียน</TableCell>
+                <TableCell sx={{ color: "#ffffff"}}>สถานะ</TableCell>
+                <TableCell sx={{ color: "#ffffff"}}>จัดการ</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

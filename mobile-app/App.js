@@ -6,7 +6,8 @@ import HomeScreen from "./app/screens/HomeScreen";
 import RegisterScreen from "./app/screens/RegisterScreen";
 import JoinClassScreen from "./app/screens/JoinClassScreen";
 import ClassroomPage from "./app/screens/ClassroomPage";
-
+import StudentQAPage from "./app/screens/StudentQAPage";
+import EditProfileScreen from "./app/screens/EditProfileScreen";
 
 
 const Stack = createStackNavigator();
@@ -20,7 +21,8 @@ export default function App() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="JoinClassScreen" component={JoinClassScreen} />
         <Stack.Screen name="ClassroomPage" component={ClassroomPage} />
-
+        <Stack.Screen name="StudentQAPage" component={StudentQAPage} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

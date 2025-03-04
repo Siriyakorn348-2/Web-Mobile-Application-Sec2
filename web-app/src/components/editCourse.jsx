@@ -43,7 +43,7 @@ const EditCoursePage = () => {
     <Box display="flex" justifyContent="center"  sx={{ paddingTop:15 }} >
       <Card sx={{ p: 3, borderRadius: 3, maxWidth: 400 }}>
         <CardContent>
-          <Typography variant="h5" textAlign="center" color="#5E35B1">
+          <Typography variant="h5" textAlign="center" color="black" fontWeight="bold">
             Edit Course
           </Typography>
 

@@ -3,7 +3,11 @@
     "name": "mobile-app",
     "slug": "mobile-app",
     "version": "1.0.0",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,10 +19,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.warinee_3416.mobileapp",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.warinee.mobileapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +44,14 @@
       "url": "https://u.expo.dev/8637961d-d51f-4d00-9e1f-a850157ee423"
     },
     "plugins": [
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera.",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone.",
+          "recordAudioAndroid": true
+        }
+      ],
       "expo-barcode-scanner"
     ]
   }

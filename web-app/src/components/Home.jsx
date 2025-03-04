@@ -6,7 +6,6 @@ import { Edit, AddCircle, ExitToApp, Menu } from '@mui/icons-material';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { ListItemButton } from '@mui/material'; 
 
-
 const HomePage = () => {
   const [user, setUser] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -32,7 +31,6 @@ const HomePage = () => {
       fetchCourses();
     }
   }, [user]);
-  
 
   const fetchCourses = async () => {
     if (!user) return;
@@ -45,7 +43,7 @@ const HomePage = () => {
   
       const coursesData = querySnapshot.docs
         .map(doc => ({ ...doc.data(), courseID: doc.id }))
-        .filter(course => course.owner === user.uid); 
+        .filter(course => course.ownerUid === user.uid); 
   
       console.log("Courses after filtering:", coursesData);
   
@@ -54,9 +52,6 @@ const HomePage = () => {
       console.error('Error fetching data:', error);
     }
   };
-  
-  
-  
 
   const handleLogout = () => {
     if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?")) {
@@ -65,31 +60,30 @@ const HomePage = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column',minHeight:'100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
     {/* Navbar */}
-    <AppBar position="fixed" sx={{ bgcolor: "#9575CD", px: 2 }}>
-  <Toolbar>
-    <IconButton
-      edge="end"
-      color="inherit"
-      onClick={() => setIsSidebarOpen(true)}
-      sx={{
-        marginLeft: "auto",
-        mr: 1, 
-        "&:hover": {
-          bgcolor: "#5E35B1", 
-        },
-        "&:active": {
-          bgcolor: "rgba(151, 49, 198, 0.5)", 
-        },
-      }}
-    >
-      <Menu />
-    </IconButton>
-  </Toolbar>
-</AppBar>
+    <AppBar position="fixed" sx={{ bgcolor: "#5E35B1", px: 2 }}>
+      <Toolbar>
+        <IconButton
+          edge="end"
+          color="inherit"
+          onClick={() => setIsSidebarOpen(true)}
+          sx={{
+            marginLeft: "auto",
+            mr: 1, 
+            "&:hover": {
+              bgcolor: "#5E35B1", 
+            },
+            "&:active": {
+              bgcolor: "rgba(151, 49, 198, 0.5)", 
+            },
+          }}
+        >
+          <Menu />
+        </IconButton>
+      </Toolbar>
+    </AppBar>
 
-  
     {/* Sidebar */}
     <Drawer 
       anchor="left" 
@@ -97,13 +91,13 @@ const HomePage = () => {
       onClose={() => setIsSidebarOpen(false)}
       PaperProps={{
         sx: { 
-          background: " #EDE7F6", 
+          background: " #fffff", 
           color: "white",
           width: 280
         }
       }}
     >
-      <Box sx={{ padding: 3, textAlign: "center", bgcolor: "#EDE7F6" }}>
+      <Box sx={{ padding: 3, textAlign: "center", bgcolor: "#fffff" }}>
         <Avatar 
           src={user?.photoURL} 
           sx={{ 
@@ -118,7 +112,7 @@ const HomePage = () => {
           {user?.displayName?.charAt(0)}
         </Avatar>
         
-        <Typography variant="h6" sx={{ fontWeight: "bold", color: "#5E35B1" }}>
+        <Typography variant="h6" sx={{ fontWeight: "bold", color: "black" }}>
           {user?.displayName}
         </Typography>
         
@@ -132,7 +126,7 @@ const HomePage = () => {
           variant="contained"
           sx={{ 
             mt: 3, 
-            bgcolor: "#9575CD", 
+            bgcolor: "#5E35B1", 
             color: "white", 
             "&:hover": { bgcolor: "#7E57C2" } 
           }}
@@ -142,15 +136,15 @@ const HomePage = () => {
         </Button>
   
         <List sx={{ mt: 2 }}>
-        <ListItemButton onClick={() => navigate('/add-course')}>
-        <ListItemIcon sx={{ color: "#5E35B1" }}><AddCircle /></ListItemIcon>
-        <ListItemText primary="Add Course" sx={{ color: "#5E35B1" }} />
-      </ListItemButton>
+          <ListItemButton onClick={() => navigate('/add-course')}>
+            <ListItemIcon sx={{ color: "#5E35B1" }}><AddCircle /></ListItemIcon>
+            <ListItemText primary="Add Course" sx={{ color: "#5E35B1" }} />
+          </ListItemButton>
 
-      <ListItemButton onClick={handleLogout}>
-        <ListItemIcon sx={{ color: "#5E35B1" }}><ExitToApp /></ListItemIcon>
-        <ListItemText primary="Logout" sx={{ color: "#5E35B1" }} />
-      </ListItemButton>
+          <ListItemButton onClick={handleLogout}>
+            <ListItemIcon sx={{ color: "#5E35B1" }}><ExitToApp /></ListItemIcon>
+            <ListItemText primary="Logout" sx={{ color: "#5E35B1" }} />
+          </ListItemButton>
         </List>
       </Box>
     </Drawer>
@@ -159,14 +153,14 @@ const HomePage = () => {
   
     {/* Content */}
     <Container sx={{ mt: 3, flexGrow: 1, marginTop: 5 }}>
-      <Typography variant="h4" sx={{ textAlign: 'center', my: 3, marginTop: 2, color: "#5E35B1" }}>
+      <Typography variant="h4" sx={{ textAlign: 'center', my: 3, marginTop: 2, color: "black" }}>
         ห้องเรียนของฉัน
       </Typography>
       <Grid container spacing={3}>
         {courses.length > 0 ? (
           courses.map((course) => (
             <Grid item xs={12} sm={6} md={4} key={course.courseID}>
-              <Card sx={{ borderRadius: 3, boxShadow: 3, bgcolor: "#EDE7F6" }}>
+              <Card sx={{ borderRadius: 3, boxShadow: 3, bgcolor: "#fffff" }}>
                 <CardMedia
                   component="img"
                   height="160"
@@ -174,7 +168,7 @@ const HomePage = () => {
                   alt={course.courseName}
                 />
                 <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ color: "#512DA8" }}>
+                  <Typography variant="h6" gutterBottom sx={{ color: "black", fontWeight: "bold" }}>
                     {course.courseName}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
@@ -183,8 +177,8 @@ const HomePage = () => {
                   <Button
                     variant="contained"
                     fullWidth
-                    sx={{ mt: 2, bgcolor: "#9575CD", color: "white", "&:hover": { bgcolor: "#7E57C2" } }}
-                    onClick={() => navigate(`/manage-class/${course.courseID}`)}
+                    sx={{ mt: 2, bgcolor: "#5E35B1", color: "white", "&:hover": { bgcolor: "#7E57C2" } }}
+                    onClick={() => navigate(`/manage-class/${course.courseID}`)} // Corrected path
                   >
                     Manage Classroom
                   </Button>
@@ -200,7 +194,6 @@ const HomePage = () => {
       </Grid>
     </Container>
   </Box>
-  
   );
 };
 
